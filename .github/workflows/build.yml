@@ -1,0 +1,61 @@
+name: Build & Package
+
+on:
+  push:
+    branches: [ main, master ]
+    tags: [ 'v*' ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - run: dotnet test DoinkBinds.sln -c Release
+
+  windows:
+    needs: test
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        rid: [ win-x64, win-arm64 ]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Publish single-file exe
+        run: dotnet publish src/DoinkBinds/DoinkBinds.csproj -p:PublishProfile=${{ matrix.rid }}
+      - name: Build installer (Inno Setup)
+        shell: pwsh
+        run: |
+          choco install innosetup --no-progress -y
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DRid=${{ matrix.rid }}" build\windows\DoinkBinds.iss
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DoinkBinds-${{ matrix.rid }}
+          path: |
+            publish/${{ matrix.rid }}/
+            publish/DoinkBinds-Setup-${{ matrix.rid }}.exe
+
+  macos:
+    needs: test
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        rid: [ osx-arm64, osx-x64 ]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Build .app and .dmg
+        run: ./build/package-macos.sh ${{ matrix.rid }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DoinkBinds-${{ matrix.rid }}
+          path: publish/DoinkBinds-${{ matrix.rid }}.dmg

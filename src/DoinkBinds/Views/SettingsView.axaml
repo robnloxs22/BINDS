@@ -1,0 +1,259 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:DoinkBinds.ViewModels"
+             xmlns:conv="using:DoinkBinds.Converters"
+             mc:Ignorable="d" d:DesignWidth="760" d:DesignHeight="700"
+             x:Class="DoinkBinds.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+
+    <UserControl.Resources>
+        <conv:EnumDisplayConverter x:Key="EnumText" />
+    </UserControl.Resources>
+
+    <UserControl.Styles>
+        <Style Selector="Grid.row">
+            <Setter Property="Margin" Value="0,6" />
+        </Style>
+        <Style Selector="TextBlock.settingTitle">
+            <Setter Property="FontWeight" Value="Medium" />
+        </Style>
+    </UserControl.Styles>
+
+    <Grid RowDefinitions="Auto,*">
+        <!-- Header -->
+        <Grid ColumnDefinitions="*,Auto" Margin="24,18,16,12">
+            <StackPanel>
+                <TextBlock Classes="h1" Text="Settings" />
+                <TextBlock Classes="caption" Text="Changes are saved automatically." />
+            </StackPanel>
+            <Button Grid.Column="1" Classes="ghost icon" VerticalAlignment="Top" ToolTip.Tip="Close (Esc)"
+                    Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).ToggleSettingsCommand}">
+                <PathIcon Data="{StaticResource Icon.Close}" />
+            </Button>
+        </Grid>
+
+        <ScrollViewer Grid.Row="1" Padding="24,0,24,24">
+            <StackPanel Spacing="18">
+
+                <!-- Permission notice (macOS) -->
+                <Border Classes="card" IsVisible="{Binding PermissionMessage, Converter={x:Static ObjectConverters.IsNotNull}}"
+                        BorderBrush="{StaticResource Doink.Yellow}">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="{Binding PermissionMessage}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                        <Button Grid.Column="1" Margin="12,0,0,0" Content="Request access" Command="{Binding RequestPermissionsCommand}"
+                                IsVisible="{Binding IsMac}" />
+                    </Grid>
+                </Border>
+
+                <!-- ============ Hotkeys ============ -->
+                <StackPanel Spacing="8">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Classes="section" Text="HOTKEYS" VerticalAlignment="Center" />
+                        <Button Grid.Column="1" Classes="ghost" Padding="8,4" FontSize="12" Content="Reset to defaults"
+                                Command="{Binding ResetHotkeysCommand}" />
+                    </Grid>
+                    <Border Classes="card" Padding="6">
+                        <ItemsControl ItemsSource="{Binding Hotkeys}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:HotkeyRowViewModel">
+                                    <Grid ColumnDefinitions="*,190,Auto,170" Margin="10,8">
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Classes="settingTitle" Text="{Binding Label}" />
+                                            <TextBlock Classes="caption" Text="{Binding Description}" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                        <Button Grid.Column="1" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                                Classes.primary="{Binding IsCapturing}" Margin="8,0,0,0"
+                                                Content="{Binding HotkeyText}" Command="{Binding CaptureCommand}"
+                                                ToolTip.Tip="Click, then press the key combination you want" />
+                                        <Button Grid.Column="2" Classes="ghost icon" Margin="2,0,0,0" ToolTip.Tip="Clear"
+                                                Command="{Binding ClearCommand}">
+                                            <PathIcon Data="{StaticResource Icon.Close}" Width="10" Height="10" />
+                                        </Button>
+                                        <ComboBox Grid.Column="3" Margin="8,0,0,0" HorizontalAlignment="Stretch"
+                                                  ItemsSource="{x:Static vm:Options.Scopes}" SelectedItem="{Binding Scope}">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{ReflectionBinding Converter={StaticResource EnumText}}" />
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Border>
+                    <Grid Classes="row" ColumnDefinitions="*,170" Margin="10,0">
+                        <StackPanel>
+                            <TextBlock Classes="settingTitle" Text="Per-macro trigger hotkeys" />
+                            <TextBlock Classes="caption" TextWrapping="Wrap"
+                                       Text="Scope for the hotkeys you assign to individual macros (set them in each macro's header)." />
+                        </StackPanel>
+                        <ComboBox Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                                  ItemsSource="{x:Static vm:Options.Scopes}" SelectedItem="{Binding MacroTriggerScope}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{ReflectionBinding Converter={StaticResource EnumText}}" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </Grid>
+                </StackPanel>
+
+                <!-- ============ Recording ============ -->
+                <StackPanel Spacing="8">
+                    <TextBlock Classes="section" Text="RECORDING" />
+                    <Border Classes="card">
+                        <StackPanel Spacing="4">
+                            <Grid Classes="row" ColumnDefinitions="*,240">
+                                <StackPanel>
+                                    <TextBlock Classes="settingTitle" Text="Default mouse position mode" />
+                                    <TextBlock Classes="caption" TextWrapping="Wrap"
+                                               Text="Percentage makes macros work on any resolution. Relative replays movement from wherever the cursor is." />
+                                </StackPanel>
+                                <ComboBox Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                                          ItemsSource="{x:Static vm:Options.MouseModes}" SelectedItem="{Binding DefaultMouseMode}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{ReflectionBinding Converter={StaticResource EnumText}}" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </Grid>
+                            <Grid Classes="row" ColumnDefinitions="*,Auto">
+                                <StackPanel>
+                                    <TextBlock Classes="settingTitle" Text="Record mouse movement" />
+                                    <TextBlock Classes="caption" Text="Turn off to record only clicks, scrolls and keys." />
+                                </StackPanel>
+                                <ToggleSwitch Grid.Column="1" IsChecked="{Binding RecordMouseMovement}" />
+                            </Grid>
+                            <Grid Classes="row" ColumnDefinitions="*,140" IsEnabled="{Binding RecordMouseMovement}">
+                                <StackPanel>
+                                    <TextBlock Classes="settingTitle" Text="Movement sample interval (ms)" />
+                                    <TextBlock Classes="caption" Text="Lower = smoother paths, bigger macros." />
+                                </StackPanel>
+                                <NumericUpDown Grid.Column="1" Value="{Binding MouseMoveSampleMs}" Minimum="1" Maximum="1000" FormatString="0" />
+                            </Grid>
+                            <Grid Classes="row" ColumnDefinitions="*,140" IsEnabled="{Binding RecordMouseMovement}">
+                                <StackPanel>
+                                    <TextBlock Classes="settingTitle" Text="Ignore movements smaller than (px)" />
+                                    <TextBlock Classes="caption" Text="Filters out hand jitter." />
+                                </StackPanel>
+                                <NumericUpDown Grid.Column="1" Value="{Binding MouseMoveMinDistance}" Minimum="0" Maximum="100" FormatString="0" />
+                            </Grid>
+                            <Grid Classes="row" ColumnDefinitions="*,Auto">
+                                <StackPanel>
+                                    <TextBlock Classes="settingTitle" Text="Capture window / application info" />
+                                    <TextBlock Classes="caption" Text="Needed for restoring focus and waiting for the right window." />
+                                </StackPanel>
+                                <ToggleSwitch Grid.Column="1" IsChecked="{Binding RecordWindowInfo}" />
+                            </Grid>
+                            <Grid Classes="row" ColumnDefinitions="*,Auto">
+                                <StackPanel>
+                                    <TextBlock Classes="settingTitle" Text="Ignore input inside Doink Binds" />
+                                    <TextBlock Classes="caption" Text="Clicks on the app itself (like the Stop button) are not recorded." />
+                                </StackPanel>
+                                <ToggleSwitch Grid.Column="1" IsChecked="{Binding IgnoreOwnWindow}" />
+                            </Grid>
+                            <Grid Classes="row" ColumnDefinitions="*,140">
+                                <StackPanel>
+                                    <TextBlock Classes="settingTitle" Text="Countdown before recording (s)" />
+                                    <TextBlock Classes="caption" Text="Gives you time to switch to the target app." />
+                                </StackPanel>
+                                <NumericUpDown Grid.Column="1" Value="{Binding RecordCountdownSeconds}" Minimum="0" Maximum="10" FormatString="0" />
+                            </Grid>
+                            <Grid Classes="row" ColumnDefinitions="*,Auto">
+                                <TextBlock Classes="settingTitle" Text="Show floating status indicator" VerticalAlignment="Center" />
+                                <ToggleSwitch Grid.Column="1" IsChecked="{Binding ShowRecordingIndicator}" />
+                            </Grid>
+                            <Grid Classes="row" ColumnDefinitions="*,Auto">
+                                <TextBlock Classes="settingTitle" Text="Minimize Doink Binds while recording" VerticalAlignment="Center" />
+                                <ToggleSwitch Grid.Column="1" IsChecked="{Binding MinimizeWhileRecording}" />
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- ============ Playback ============ -->
+                <StackPanel Spacing="8">
+                    <TextBlock Classes="section" Text="PLAYBACK &amp; MONITORS" />
+                    <Border Classes="card">
+                        <StackPanel Spacing="4">
+                            <Grid Classes="row" ColumnDefinitions="*,240">
+                                <StackPanel>
+                                    <TextBlock Classes="settingTitle" Text="Percentage coordinates are relative to" />
+                                    <TextBlock Classes="caption" TextWrapping="Wrap"
+                                               Text="If a recorded monitor is unplugged, the primary monitor is used." />
+                                </StackPanel>
+                                <ComboBox Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                                          ItemsSource="{x:Static vm:Options.MonitorAwarenessModes}" SelectedItem="{Binding MonitorAwareness}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{ReflectionBinding Converter={StaticResource EnumText}}" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </Grid>
+                            <Grid Classes="row" ColumnDefinitions="*,140">
+                                <StackPanel>
+                                    <TextBlock Classes="settingTitle" Text="Wait-for-window timeout (s)" />
+                                    <TextBlock Classes="caption" Text="0 = wait forever." />
+                                </StackPanel>
+                                <NumericUpDown Grid.Column="1" Value="{Binding WaitForWindowTimeoutSeconds}" Minimum="0" Maximum="600"
+                                               Increment="1" FormatString="0.#" />
+                            </Grid>
+                            <Grid Classes="row" ColumnDefinitions="*,Auto" IsVisible="{Binding IsWindows}">
+                                <StackPanel>
+                                    <TextBlock Classes="settingTitle" Text="Send keys as scan codes" />
+                                    <TextBlock Classes="caption" Text="Improves compatibility with games that ignore virtual keys." />
+                                </StackPanel>
+                                <ToggleSwitch Grid.Column="1" IsChecked="{Binding UseScanCodes}" />
+                            </Grid>
+                            <Grid Classes="row" ColumnDefinitions="*,Auto">
+                                <TextBlock Classes="settingTitle" Text="Minimize Doink Binds while playing" VerticalAlignment="Center" />
+                                <ToggleSwitch Grid.Column="1" IsChecked="{Binding MinimizeWhilePlaying}" />
+                            </Grid>
+                            <Separator Margin="0,6" />
+                            <Grid ColumnDefinitions="*,Auto">
+                                <StackPanel>
+                                    <TextBlock Classes="settingTitle" Text="Detected monitors" />
+                                    <TextBlock Classes="caption mono" Text="{Binding MonitorSummary}" TextWrapping="Wrap" />
+                                </StackPanel>
+                                <Button Grid.Column="1" Classes="ghost" Content="Refresh" VerticalAlignment="Top"
+                                        Command="{Binding RefreshMonitorsCommand}" />
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- ============ Appearance + About ============ -->
+                <StackPanel Spacing="8">
+                    <TextBlock Classes="section" Text="APPEARANCE &amp; DATA" />
+                    <Border Classes="card">
+                        <StackPanel Spacing="4">
+                            <Grid Classes="row" ColumnDefinitions="*,160">
+                                <TextBlock Classes="settingTitle" Text="Theme" VerticalAlignment="Center" />
+                                <ComboBox Grid.Column="1" HorizontalAlignment="Stretch" ItemsSource="{x:Static vm:Options.Themes}"
+                                          SelectedItem="{Binding Theme}" />
+                            </Grid>
+                            <Grid Classes="row" ColumnDefinitions="*,Auto">
+                                <StackPanel>
+                                    <TextBlock Classes="settingTitle" Text="Data folder" />
+                                    <TextBlock Classes="caption mono" Text="{Binding DataFolder}" TextWrapping="Wrap" />
+                                </StackPanel>
+                                <Button Grid.Column="1" Content="Open" VerticalAlignment="Center" Command="{Binding OpenDataFolderCommand}" />
+                            </Grid>
+                            <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,6,0,0">
+                                <TextBlock Classes="caption" Text="Doink Binds" />
+                                <TextBlock Classes="caption" Text="{Binding Version}" />
+                                <TextBlock Classes="caption" Text="·" />
+                                <TextBlock Classes="caption" Text="{Binding PlatformName}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

@@ -1,0 +1,654 @@
+{
+  "format": "doink",
+  "version": 1,
+  "app": "Doink Binds",
+  "macro": {
+    "id": "6ab922f8-3723-48b7-8524-66e0e9cb479d",
+    "name": "Draw a Square",
+    "folder": "",
+    "description": "Open a paint program, put the cursor on the canvas and press Play: draws a 200 px square starting at the cursor (relative coordinates).",
+    "createdUtc": "2026-01-01T00:00:00Z",
+    "modifiedUtc": "2026-01-01T00:00:00Z",
+    "triggerHotkey": null,
+    "playback": {
+      "mode": "Once",
+      "loopCount": 3,
+      "speed": 1.0,
+      "restoreWindowFocus": false,
+      "waitForWindow": false,
+      "loopDelayMs": 250
+    },
+    "actions": [
+      {
+        "type": "MouseDown",
+        "delayMs": 300,
+        "position": {
+          "mode": "Relative",
+          "x": 0,
+          "y": 0,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "MouseMove",
+        "delayMs": 15,
+        "position": {
+          "mode": "Relative",
+          "x": 20.0,
+          "y": 0.0,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "MouseMove",
+        "delayMs": 15,
+        "position": {
+          "mode": "Relative",
+          "x": 20.0,
+          "y": 0.0,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "MouseMove",
+        "delayMs": 15,
+        "position": {
+          "mode": "Relative",
+          "x": 20.0,
+          "y": 0.0,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "MouseMove",
+        "delayMs": 15,
+        "position": {
+          "mode": "Relative",
+          "x": 20.0,
+          "y": 0.0,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "MouseMove",
+        "delayMs": 15,
+        "position": {
+          "mode": "Relative",
+          "x": 20.0,
+          "y": 0.0,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "MouseMove",
+        "delayMs": 15,
+        "position": {
+          "mode": "Relative",
+          "x": 20.0,
+          "y": 0.0,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "MouseMove",
+        "delayMs": 15,
+        "position": {
+          "mode": "Relative",
+          "x": 20.0,
+          "y": 0.0,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "MouseMove",
+        "delayMs": 15,
+        "position": {
+          "mode": "Relative",
+          "x": 20.0,
+          "y": 0.0,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "MouseMove",
+        "delayMs": 15,
+        "position": {
+          "mode": "Relative",
+          "x": 20.0,
+          "y": 0.0,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "MouseMove",
+        "delayMs": 15,
+        "position": {
+          "mode": "Relative",
+          "x": 20.0,
+          "y": 0.0,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "MouseMove",
+        "delayMs": 15,
+        "position": {
+          "mode": "Relative",
+          "x": 0.0,
+          "y": 20.0,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "MouseMove",
+        "delayMs": 15,
+        "position": {
+          "mode": "Relative",
+          "x": 0.0,
+          "y": 20.0,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "MouseMove",
+        "delayMs": 15,
+        "position": {
+          "mode": "Relative",
+          "x": 0.0,
+          "y": 20.0,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "MouseMove",
+        "delayMs": 15,
+        "position": {
+          "mode": "Relative",
+          "x": 0.0,
+          "y": 20.0,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "MouseMove",
+        "delayMs": 15,
+        "position": {
+          "mode": "Relative",
+          "x": 0.0,
+          "y": 20.0,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "MouseMove",
+        "delayMs": 15,
+        "position": {
+          "mode": "Relative",
+          "x": 0.0,
+          "y": 20.0,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "MouseMove",
+        "delayMs": 15,
+        "position": {
+          "mode": "Relative",
+          "x": 0.0,
+          "y": 20.0,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "MouseMove",
+        "delayMs": 15,
+        "position": {
+          "mode": "Relative",
+          "x": 0.0,
+          "y": 20.0,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "MouseMove",
+        "delayMs": 15,
+        "position": {
+          "mode": "Relative",
+          "x": 0.0,
+          "y": 20.0,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "MouseMove",
+        "delayMs": 15,
+        "position": {
+          "mode": "Relative",
+          "x": 0.0,
+          "y": 20.0,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "MouseMove",
+        "delayMs": 15,
+        "position": {
+          "mode": "Relative",
+          "x": -20.0,
+          "y": 0.0,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "MouseMove",
+        "delayMs": 15,
+        "position": {
+          "mode": "Relative",
+          "x": -20.0,
+          "y": 0.0,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "MouseMove",
+        "delayMs": 15,
+        "position": {
+          "mode": "Relative",
+          "x": -20.0,
+          "y": 0.0,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "MouseMove",
+        "delayMs": 15,
+        "position": {
+          "mode": "Relative",
+          "x": -20.0,
+          "y": 0.0,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "MouseMove",
+        "delayMs": 15,
+        "position": {
+          "mode": "Relative",
+          "x": -20.0,
+          "y": 0.0,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "MouseMove",
+        "delayMs": 15,
+        "position": {
+          "mode": "Relative",
+          "x": -20.0,
+          "y": 0.0,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "MouseMove",
+        "delayMs": 15,
+        "position": {
+          "mode": "Relative",
+          "x": -20.0,
+          "y": 0.0,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "MouseMove",
+        "delayMs": 15,
+        "position": {
+          "mode": "Relative",
+          "x": -20.0,
+          "y": 0.0,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "MouseMove",
+        "delayMs": 15,
+        "position": {
+          "mode": "Relative",
+          "x": -20.0,
+          "y": 0.0,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "MouseMove",
+        "delayMs": 15,
+        "position": {
+          "mode": "Relative",
+          "x": -20.0,
+          "y": 0.0,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "MouseMove",
+        "delayMs": 15,
+        "position": {
+          "mode": "Relative",
+          "x": 0.0,
+          "y": -20.0,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "MouseMove",
+        "delayMs": 15,
+        "position": {
+          "mode": "Relative",
+          "x": 0.0,
+          "y": -20.0,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "MouseMove",
+        "delayMs": 15,
+        "position": {
+          "mode": "Relative",
+          "x": 0.0,
+          "y": -20.0,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "MouseMove",
+        "delayMs": 15,
+        "position": {
+          "mode": "Relative",
+          "x": 0.0,
+          "y": -20.0,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "MouseMove",
+        "delayMs": 15,
+        "position": {
+          "mode": "Relative",
+          "x": 0.0,
+          "y": -20.0,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "MouseMove",
+        "delayMs": 15,
+        "position": {
+          "mode": "Relative",
+          "x": 0.0,
+          "y": -20.0,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "MouseMove",
+        "delayMs": 15,
+        "position": {
+          "mode": "Relative",
+          "x": 0.0,
+          "y": -20.0,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "MouseMove",
+        "delayMs": 15,
+        "position": {
+          "mode": "Relative",
+          "x": 0.0,
+          "y": -20.0,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "MouseMove",
+        "delayMs": 15,
+        "position": {
+          "mode": "Relative",
+          "x": 0.0,
+          "y": -20.0,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "MouseMove",
+        "delayMs": 15,
+        "position": {
+          "mode": "Relative",
+          "x": 0.0,
+          "y": -20.0,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "MouseUp",
+        "delayMs": 50,
+        "position": {
+          "mode": "Relative",
+          "x": 0,
+          "y": 0,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      }
+    ]
+  }
+}

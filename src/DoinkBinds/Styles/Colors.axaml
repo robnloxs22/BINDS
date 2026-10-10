@@ -1,0 +1,65 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+        Palette inspired by Discord / Notion. Every color is a theme resource, so the
+        optional light mode only needs a second dictionary (Settings → Appearance).
+    -->
+    <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Dark">
+            <SolidColorBrush x:Key="Doink.Bg.Deep" Color="#1E1F22" />
+            <SolidColorBrush x:Key="Doink.Bg.Sidebar" Color="#2B2D31" />
+            <SolidColorBrush x:Key="Doink.Bg.Main" Color="#313338" />
+            <SolidColorBrush x:Key="Doink.Bg.Card" Color="#2B2D31" />
+            <SolidColorBrush x:Key="Doink.Bg.Raised" Color="#383A40" />
+            <SolidColorBrush x:Key="Doink.Bg.Hover" Color="#3A3C42" />
+            <SolidColorBrush x:Key="Doink.Bg.Selected" Color="#404249" />
+            <SolidColorBrush x:Key="Doink.Bg.Input" Color="#1E1F22" />
+            <SolidColorBrush x:Key="Doink.Border" Color="#3F4147" />
+            <SolidColorBrush x:Key="Doink.Border.Subtle" Color="#2E3035" />
+            <SolidColorBrush x:Key="Doink.Text" Color="#F2F3F5" />
+            <SolidColorBrush x:Key="Doink.Text.Secondary" Color="#B5BAC1" />
+            <SolidColorBrush x:Key="Doink.Text.Muted" Color="#80848E" />
+            <SolidColorBrush x:Key="Doink.Overlay" Color="#B0000000" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Light">
+            <SolidColorBrush x:Key="Doink.Bg.Deep" Color="#E3E5E8" />
+            <SolidColorBrush x:Key="Doink.Bg.Sidebar" Color="#F2F3F5" />
+            <SolidColorBrush x:Key="Doink.Bg.Main" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="Doink.Bg.Card" Color="#F7F7F8" />
+            <SolidColorBrush x:Key="Doink.Bg.Raised" Color="#EBEDEF" />
+            <SolidColorBrush x:Key="Doink.Bg.Hover" Color="#E8E9EC" />
+            <SolidColorBrush x:Key="Doink.Bg.Selected" Color="#DCDEE3" />
+            <SolidColorBrush x:Key="Doink.Bg.Input" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="Doink.Border" Color="#D4D7DC" />
+            <SolidColorBrush x:Key="Doink.Border.Subtle" Color="#E6E7EA" />
+            <SolidColorBrush x:Key="Doink.Text" Color="#060607" />
+            <SolidColorBrush x:Key="Doink.Text.Secondary" Color="#4E5058" />
+            <SolidColorBrush x:Key="Doink.Text.Muted" Color="#80848E" />
+            <SolidColorBrush x:Key="Doink.Overlay" Color="#80000000" />
+        </ResourceDictionary>
+    </ResourceDictionary.ThemeDictionaries>
+
+    <!-- Accent colors are the same in both themes -->
+    <SolidColorBrush x:Key="Doink.Accent" Color="#5865F2" />
+    <SolidColorBrush x:Key="Doink.Accent.Hover" Color="#4752C4" />
+    <SolidColorBrush x:Key="Doink.Accent.Soft" Color="#335865F2" />
+    <SolidColorBrush x:Key="Doink.Red" Color="#ED4245" />
+    <SolidColorBrush x:Key="Doink.Red.Hover" Color="#C93B3E" />
+    <SolidColorBrush x:Key="Doink.Red.Soft" Color="#33ED4245" />
+    <SolidColorBrush x:Key="Doink.Green" Color="#23A55A" />
+    <SolidColorBrush x:Key="Doink.Green.Hover" Color="#1E8E4D" />
+    <SolidColorBrush x:Key="Doink.Green.Soft" Color="#3323A55A" />
+    <SolidColorBrush x:Key="Doink.Yellow" Color="#F0B232" />
+    <SolidColorBrush x:Key="Doink.Yellow.Soft" Color="#33F0B232" />
+    <SolidColorBrush x:Key="Doink.White" Color="#FFFFFF" />
+
+    <!-- Fluent accent override so built-in controls (sliders, toggles, focus) match -->
+    <Color x:Key="SystemAccentColor">#5865F2</Color>
+    <Color x:Key="SystemAccentColorLight1">#7983F5</Color>
+    <Color x:Key="SystemAccentColorLight2">#949CF7</Color>
+    <Color x:Key="SystemAccentColorDark1">#4752C4</Color>
+    <Color x:Key="SystemAccentColorDark2">#3C45A5</Color>
+
+    <CornerRadius x:Key="Doink.Radius">8</CornerRadius>
+    <CornerRadius x:Key="Doink.Radius.Large">12</CornerRadius>
+</ResourceDictionary>

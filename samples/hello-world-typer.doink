@@ -1,0 +1,345 @@
+{
+  "format": "doink",
+  "version": 1,
+  "app": "Doink Binds",
+  "macro": {
+    "id": "3da29203-f1bf-4f00-ad8e-d101fe20d927",
+    "name": "Hello World Typer",
+    "folder": "",
+    "description": "Types a greeting into whatever text field is focused. Focus a text box, then press Play (or set a trigger hotkey).",
+    "createdUtc": "2026-01-01T00:00:00Z",
+    "modifiedUtc": "2026-01-01T00:00:00Z",
+    "triggerHotkey": null,
+    "playback": {
+      "mode": "Once",
+      "loopCount": 3,
+      "speed": 1.0,
+      "restoreWindowFocus": false,
+      "waitForWindow": false,
+      "loopDelayMs": 250
+    },
+    "actions": [
+      {
+        "type": "Wait",
+        "delayMs": 500,
+        "position": null,
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null,
+        "note": "Click into a text field first (e.g. Notepad / TextEdit) \u2014 typing starts after 0.5 s"
+      },
+      {
+        "type": "KeyDown",
+        "delayMs": 40,
+        "position": null,
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 160,
+        "window": null
+      },
+      {
+        "type": "KeyPress",
+        "delayMs": 10,
+        "position": null,
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 72,
+        "window": null
+      },
+      {
+        "type": "KeyUp",
+        "delayMs": 10,
+        "position": null,
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 160,
+        "window": null
+      },
+      {
+        "type": "KeyPress",
+        "delayMs": 60,
+        "position": null,
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 69,
+        "window": null
+      },
+      {
+        "type": "KeyPress",
+        "delayMs": 60,
+        "position": null,
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 76,
+        "window": null
+      },
+      {
+        "type": "KeyPress",
+        "delayMs": 60,
+        "position": null,
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 76,
+        "window": null
+      },
+      {
+        "type": "KeyPress",
+        "delayMs": 60,
+        "position": null,
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 79,
+        "window": null
+      },
+      {
+        "type": "KeyPress",
+        "delayMs": 60,
+        "position": null,
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 32,
+        "window": null
+      },
+      {
+        "type": "KeyPress",
+        "delayMs": 60,
+        "position": null,
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 70,
+        "window": null
+      },
+      {
+        "type": "KeyPress",
+        "delayMs": 60,
+        "position": null,
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 82,
+        "window": null
+      },
+      {
+        "type": "KeyPress",
+        "delayMs": 60,
+        "position": null,
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 79,
+        "window": null
+      },
+      {
+        "type": "KeyPress",
+        "delayMs": 60,
+        "position": null,
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 77,
+        "window": null
+      },
+      {
+        "type": "KeyPress",
+        "delayMs": 60,
+        "position": null,
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 32,
+        "window": null
+      },
+      {
+        "type": "KeyDown",
+        "delayMs": 40,
+        "position": null,
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 160,
+        "window": null
+      },
+      {
+        "type": "KeyPress",
+        "delayMs": 10,
+        "position": null,
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 68,
+        "window": null
+      },
+      {
+        "type": "KeyUp",
+        "delayMs": 10,
+        "position": null,
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 160,
+        "window": null
+      },
+      {
+        "type": "KeyPress",
+        "delayMs": 60,
+        "position": null,
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 79,
+        "window": null
+      },
+      {
+        "type": "KeyPress",
+        "delayMs": 60,
+        "position": null,
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 73,
+        "window": null
+      },
+      {
+        "type": "KeyPress",
+        "delayMs": 60,
+        "position": null,
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 78,
+        "window": null
+      },
+      {
+        "type": "KeyPress",
+        "delayMs": 60,
+        "position": null,
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 75,
+        "window": null
+      },
+      {
+        "type": "KeyPress",
+        "delayMs": 60,
+        "position": null,
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 32,
+        "window": null
+      },
+      {
+        "type": "KeyDown",
+        "delayMs": 40,
+        "position": null,
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 160,
+        "window": null
+      },
+      {
+        "type": "KeyPress",
+        "delayMs": 10,
+        "position": null,
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 66,
+        "window": null
+      },
+      {
+        "type": "KeyUp",
+        "delayMs": 10,
+        "position": null,
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 160,
+        "window": null
+      },
+      {
+        "type": "KeyPress",
+        "delayMs": 60,
+        "position": null,
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 73,
+        "window": null
+      },
+      {
+        "type": "KeyPress",
+        "delayMs": 60,
+        "position": null,
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 78,
+        "window": null
+      },
+      {
+        "type": "KeyPress",
+        "delayMs": 60,
+        "position": null,
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 68,
+        "window": null
+      },
+      {
+        "type": "KeyPress",
+        "delayMs": 60,
+        "position": null,
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 83,
+        "window": null
+      },
+      {
+        "type": "KeyDown",
+        "delayMs": 40,
+        "position": null,
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 160,
+        "window": null
+      },
+      {
+        "type": "KeyPress",
+        "delayMs": 10,
+        "position": null,
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 49,
+        "window": null
+      },
+      {
+        "type": "KeyUp",
+        "delayMs": 10,
+        "position": null,
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 160,
+        "window": null
+      }
+    ]
+  }
+}

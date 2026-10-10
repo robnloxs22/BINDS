@@ -1,0 +1,23 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="DoinkBinds.Views.DialogWindow"
+        Width="440"
+        SizeToContent="Height"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        Title="Doink Binds">
+
+    <!-- Generic prompt / confirm / choose / message dialog. Configured from DialogService. -->
+    <StackPanel Margin="22" Spacing="12">
+        <TextBlock x:Name="Heading" Classes="h2" TextWrapping="Wrap" />
+        <TextBlock x:Name="Message" Classes="secondary" TextWrapping="Wrap" />
+        <TextBox x:Name="Input" IsVisible="False" />
+        <ListBox x:Name="Choices" IsVisible="False" MaxHeight="240"
+                 Background="{DynamicResource Doink.Bg.Input}" CornerRadius="8" />
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,6,0,0">
+            <Button x:Name="CancelButton" Classes="ghost" Content="Cancel" IsCancel="True" />
+            <Button x:Name="OkButton" Classes="primary" Content="OK" IsDefault="True" />
+        </StackPanel>
+    </StackPanel>
+</Window>

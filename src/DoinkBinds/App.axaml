@@ -1,0 +1,21 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="DoinkBinds.App"
+             Name="Doink Binds"
+             RequestedThemeVariant="Dark">
+
+    <!-- Resources must be declared BEFORE styles: Theme.axaml resolves them with StaticResource at load time. -->
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://DoinkBinds/Styles/Colors.axaml" />
+                <ResourceInclude Source="avares://DoinkBinds/Styles/Icons.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+
+    <Application.Styles>
+        <FluentTheme />
+        <StyleInclude Source="avares://DoinkBinds/Styles/Theme.axaml" />
+    </Application.Styles>
+</Application>

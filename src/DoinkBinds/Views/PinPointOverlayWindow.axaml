@@ -1,0 +1,37 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="DoinkBinds.Views.PinPointOverlayWindow"
+        Title="Doink Binds — Pick a point"
+        SystemDecorations="None"
+        Topmost="True"
+        ShowInTaskbar="False"
+        CanResize="False"
+        WindowStartupLocation="Manual"
+        TransparencyLevelHint="Transparent"
+        Background="#38000000"
+        Cursor="Cross">
+
+    <!--
+        One overlay is opened per monitor. The canvas draws full-length crosshair lines that
+        follow the pointer, a target ring, and a live coordinate badge. The actual coordinate
+        comes from the OS cursor position (not Avalonia's DIPs) so it matches playback exactly.
+    -->
+    <Canvas x:Name="Surface" Background="Transparent">
+        <Line x:Name="HLine" Stroke="#CCFFFFFF" StrokeThickness="1" StrokeDashArray="4,3" />
+        <Line x:Name="VLine" Stroke="#CCFFFFFF" StrokeThickness="1" StrokeDashArray="4,3" />
+        <Ellipse x:Name="Ring" Width="34" Height="34" Stroke="#5865F2" StrokeThickness="2.5" Fill="#225865F2" />
+        <Ellipse x:Name="Dot" Width="4" Height="4" Fill="#ED4245" />
+
+        <Border x:Name="Badge" Background="#E61E1F22" CornerRadius="6" Padding="8,4" BorderBrush="#5865F2" BorderThickness="1">
+            <TextBlock x:Name="BadgeText" Foreground="White" FontSize="12" FontFamily="Cascadia Mono,Consolas,Menlo,monospace" />
+        </Border>
+
+        <Border x:Name="Hint" Background="#F21E1F22" CornerRadius="10" Padding="16,10" BorderBrush="#3F4147" BorderThickness="1"
+                Canvas.Top="24">
+            <StackPanel Spacing="2">
+                <TextBlock x:Name="HintText" Foreground="White" FontWeight="SemiBold" FontSize="14" Text="Click to pick a position" />
+                <TextBlock Foreground="#B5BAC1" FontSize="12" Text="Arrow keys nudge by 1 px · Enter confirms · Esc or right-click cancels" />
+            </StackPanel>
+        </Border>
+    </Canvas>
+</Window>

@@ -1,0 +1,64 @@
+{
+  "format": "doink",
+  "version": 1,
+  "app": "Doink Binds",
+  "macro": {
+    "id": "4d750fad-48cc-4cd1-b384-9194df2ca8be",
+    "name": "Click Screen Center",
+    "folder": "",
+    "description": "Moves to the exact center of your primary monitor and left-clicks. Uses percentage coordinates, so it works on any resolution.",
+    "createdUtc": "2026-01-01T00:00:00Z",
+    "modifiedUtc": "2026-01-01T00:00:00Z",
+    "triggerHotkey": null,
+    "playback": {
+      "mode": "Once",
+      "loopCount": 3,
+      "speed": 1.0,
+      "restoreWindowFocus": false,
+      "waitForWindow": false,
+      "loopDelayMs": 250
+    },
+    "actions": [
+      {
+        "type": "MouseMove",
+        "delayMs": 0,
+        "position": {
+          "mode": "Percentage",
+          "x": 50,
+          "y": 50,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "MouseClick",
+        "delayMs": 300,
+        "position": {
+          "mode": "Percentage",
+          "x": 50,
+          "y": 50,
+          "monitorIndex": 0
+        },
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      },
+      {
+        "type": "Wait",
+        "delayMs": 500,
+        "position": null,
+        "button": "Left",
+        "wheelDelta": 0,
+        "horizontal": false,
+        "keyCode": 0,
+        "window": null
+      }
+    ]
+  }
+}

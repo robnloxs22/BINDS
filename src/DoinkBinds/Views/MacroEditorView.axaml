@@ -1,0 +1,239 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:DoinkBinds.ViewModels"
+             xmlns:conv="using:DoinkBinds.Converters"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="500"
+             x:Class="DoinkBinds.Views.MacroEditorView"
+             x:DataType="vm:MacroViewModel"
+             x:Name="EditorRoot">
+
+    <UserControl.Resources>
+        <conv:EnumDisplayConverter x:Key="EnumText" />
+    </UserControl.Resources>
+
+    <Grid ColumnDefinitions="*,14,330">
+
+        <!-- ============================== TIMELINE ============================== -->
+        <Border Grid.Column="0" Classes="card" Padding="0">
+            <Grid RowDefinitions="Auto,Auto,*">
+                <!-- Toolbar -->
+                <Grid Margin="14,12,10,8" ColumnDefinitions="*,Auto">
+                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <TextBlock Classes="h2" Text="Timeline" />
+                        <TextBlock Classes="caption" Text="{Binding Summary}" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2">
+                        <Button Classes="ghost" Padding="10,6" ToolTip.Tip="Add a step after the selected one">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <PathIcon Data="{StaticResource Icon.Plus}" Width="13" Height="13" />
+                                <TextBlock Text="Add step" />
+                            </StackPanel>
+                            <Button.Flyout>
+                                <MenuFlyout Placement="BottomEdgeAlignedRight">
+                                    <MenuItem Header="Click at picked position…" Command="{Binding AddPinPointClickCommand}">
+                                        <MenuItem.Icon><PathIcon Data="{StaticResource Icon.Crosshair}" /></MenuItem.Icon>
+                                    </MenuItem>
+                                    <Separator />
+                                    <MenuItem Header="Mouse click" Command="{Binding AddStepCommand}" CommandParameter="MouseClick">
+                                        <MenuItem.Icon><PathIcon Data="{StaticResource Icon.Mouse}" /></MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="Mouse move" Command="{Binding AddStepCommand}" CommandParameter="MouseMove" />
+                                    <MenuItem Header="Mouse down" Command="{Binding AddStepCommand}" CommandParameter="MouseDown" />
+                                    <MenuItem Header="Mouse up" Command="{Binding AddStepCommand}" CommandParameter="MouseUp" />
+                                    <MenuItem Header="Scroll wheel" Command="{Binding AddStepCommand}" CommandParameter="MouseWheel" />
+                                    <Separator />
+                                    <MenuItem Header="Key press" Command="{Binding AddStepCommand}" CommandParameter="KeyPress">
+                                        <MenuItem.Icon><PathIcon Data="{StaticResource Icon.Keyboard}" /></MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="Key down" Command="{Binding AddStepCommand}" CommandParameter="KeyDown" />
+                                    <MenuItem Header="Key up" Command="{Binding AddStepCommand}" CommandParameter="KeyUp" />
+                                    <Separator />
+                                    <MenuItem Header="Wait" Command="{Binding AddStepCommand}" CommandParameter="Wait">
+                                        <MenuItem.Icon><PathIcon Data="{StaticResource Icon.Timer}" /></MenuItem.Icon>
+                                    </MenuItem>
+                                </MenuFlyout>
+                            </Button.Flyout>
+                        </Button>
+                        <Button Classes="ghost icon" ToolTip.Tip="Move up" Command="{Binding MoveStepUpCommand}">
+                            <PathIcon Data="{StaticResource Icon.ChevronUp}" />
+                        </Button>
+                        <Button Classes="ghost icon" ToolTip.Tip="Move down" Command="{Binding MoveStepDownCommand}">
+                            <PathIcon Data="{StaticResource Icon.ChevronDown}" />
+                        </Button>
+                        <Button Classes="ghost icon" ToolTip.Tip="Duplicate step" Command="{Binding DuplicateStepCommand}">
+                            <PathIcon Data="{StaticResource Icon.Copy}" />
+                        </Button>
+                        <Button Classes="ghost icon" ToolTip.Tip="Delete step (Del)" Command="{Binding DeleteStepCommand}">
+                            <PathIcon Data="{StaticResource Icon.Delete}" />
+                        </Button>
+                        <Button Classes="ghost icon" ToolTip.Tip="More">
+                            <PathIcon Data="{StaticResource Icon.More}" />
+                            <Button.Flyout>
+                                <MenuFlyout Placement="BottomEdgeAlignedRight">
+                                    <MenuItem Header="Remove all mouse moves" Command="{Binding RemoveMouseMovesCommand}" />
+                                    <MenuItem Header="Scale all delays…" Command="{Binding ScaleDelaysCommand}" />
+                                    <MenuItem Header="Convert all positions to">
+                                        <MenuItem Header="Absolute (x, y)" Command="{Binding ConvertAllPositionsCommand}" CommandParameter="Absolute" />
+                                        <MenuItem Header="Relative to cursor" Command="{Binding ConvertAllPositionsCommand}" CommandParameter="Relative" />
+                                        <MenuItem Header="Percentage of screen" Command="{Binding ConvertAllPositionsCommand}" CommandParameter="Percentage" />
+                                    </MenuItem>
+                                    <Separator />
+                                    <MenuItem Header="Clear all steps…" Command="{Binding ClearStepsCommand}" />
+                                </MenuFlyout>
+                            </Button.Flyout>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+
+                <Rectangle Grid.Row="1" Height="1" Fill="{DynamicResource Doink.Border.Subtle}" />
+
+                <!-- Steps -->
+                <Panel Grid.Row="2">
+                    <ListBox x:Name="StepList" ItemsSource="{Binding Steps}" SelectedItem="{Binding SelectedStep}"
+                             Padding="6" KeyDown="StepList_KeyDown">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ActionViewModel">
+                                <Border Classes="step" Classes.current="{Binding IsCurrent}" Padding="6,4" Background="Transparent">
+                                    <Grid ColumnDefinitions="38,30,*,Auto">
+                                        <TextBlock Classes="caption mono" Text="{Binding Number}" VerticalAlignment="Center" />
+                                        <Border Grid.Column="1" Classes="badge" Classes.key="{Binding IsKey}" Classes.wait="{Binding IsWait}">
+                                            <Panel>
+                                                <PathIcon Data="{StaticResource Icon.Mouse}" Width="13" Height="13" IsVisible="{Binding IsMouse}"
+                                                          Foreground="{StaticResource Doink.Accent}" />
+                                                <PathIcon Data="{StaticResource Icon.Keyboard}" Width="14" Height="14" IsVisible="{Binding IsKey}"
+                                                          Foreground="{StaticResource Doink.Green}" />
+                                                <PathIcon Data="{StaticResource Icon.Timer}" Width="13" Height="13" IsVisible="{Binding IsWait}"
+                                                          Foreground="{StaticResource Doink.Yellow}" />
+                                            </Panel>
+                                        </Border>
+                                        <StackPanel Grid.Column="2" Margin="12,0,8,0" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Title}" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Classes="caption" Text="{Binding Detail}" TextTrimming="CharacterEllipsis"
+                                                       IsVisible="{Binding Detail, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="3" Classes="secondary mono" FontSize="12" Text="{Binding DelayText}"
+                                                   VerticalAlignment="Center" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <StackPanel IsVisible="{Binding !HasSteps}" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8" MaxWidth="340">
+                        <PathIcon Data="{StaticResource Icon.Record}" Width="28" Height="28" Foreground="{StaticResource Doink.Red}" HorizontalAlignment="Center" />
+                        <TextBlock Classes="h2" Text="This macro is empty" HorizontalAlignment="Center" />
+                        <TextBlock Classes="caption" TextAlignment="Center" TextWrapping="Wrap"
+                                   Text="Press the red record button (or the record hotkey) to capture your mouse and keyboard, or add steps by hand with “Add step”." />
+                    </StackPanel>
+                </Panel>
+            </Grid>
+        </Border>
+
+        <!-- ============================== STEP EDITOR ============================== -->
+        <Border Grid.Column="2" Classes="card">
+            <ScrollViewer>
+                <Panel Margin="0,0,14,0">
+                    <StackPanel IsVisible="{Binding SelectedStep, Converter={x:Static ObjectConverters.IsNull}}"
+                                VerticalAlignment="Top" Spacing="6">
+                        <TextBlock Classes="h2" Text="Step details" />
+                        <TextBlock Classes="caption" TextWrapping="Wrap"
+                                   Text="Select a step in the timeline to edit its timing, position or key." />
+                        <Separator Margin="0,12" />
+                        <TextBlock Classes="section" Text="DESCRIPTION" />
+                        <TextBox Text="{Binding Description}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="70"
+                                 Watermark="Notes about what this macro does…" />
+                    </StackPanel>
+
+                    <StackPanel DataContext="{Binding SelectedStep}" x:DataType="vm:ActionViewModel" Spacing="8"
+                                IsVisible="{Binding $self.DataContext, Converter={x:Static ObjectConverters.IsNotNull}}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Classes="h2" Text="Step" />
+                            <TextBlock Classes="h2" Text="{Binding Number}" />
+                        </StackPanel>
+
+                        <TextBlock Classes="section" Text="TYPE" Margin="0,6,0,0" />
+                        <ComboBox ItemsSource="{x:Static vm:Options.ActionTypes}" SelectedItem="{Binding Type}" HorizontalAlignment="Stretch">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{ReflectionBinding Converter={StaticResource EnumText}}" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+
+                        <TextBlock Classes="section" Text="DELAY BEFORE THIS STEP (MS)" Margin="0,6,0,0" />
+                        <NumericUpDown Value="{Binding DelayMs}" Minimum="0" Maximum="3600000" Increment="10" FormatString="0" />
+
+                        <!-- Mouse -->
+                        <StackPanel Spacing="8" IsVisible="{Binding IsMouse}">
+                            <TextBlock Classes="section" Text="BUTTON" Margin="0,6,0,0" IsVisible="{Binding IsButton}" />
+                            <ComboBox ItemsSource="{x:Static vm:Options.MouseButtons}" SelectedItem="{Binding Button}"
+                                      HorizontalAlignment="Stretch" IsVisible="{Binding IsButton}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{ReflectionBinding Converter={StaticResource EnumText}}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+
+                            <StackPanel Spacing="8" IsVisible="{Binding IsWheel}">
+                                <TextBlock Classes="section" Text="SCROLL (NOTCHES, + = UP/RIGHT)" Margin="0,6,0,0" />
+                                <NumericUpDown Value="{Binding WheelNotches}" Minimum="-100" Maximum="100" Increment="1" FormatString="0.##" />
+                                <CheckBox Content="Horizontal scroll" IsChecked="{Binding Horizontal}" />
+                            </StackPanel>
+
+                            <StackPanel Spacing="8" IsVisible="{Binding HasPosition}">
+                                <TextBlock Classes="section" Text="POSITION MODE" Margin="0,6,0,0" />
+                                <ComboBox ItemsSource="{x:Static vm:Options.MouseModes}" SelectedItem="{Binding PositionMode}" HorizontalAlignment="Stretch">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{ReflectionBinding Converter={StaticResource EnumText}}" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                                <Grid ColumnDefinitions="*,10,*">
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Classes="caption" Text="X" />
+                                        <NumericUpDown Value="{Binding X}" Minimum="{Binding CoordinateMin}" Maximum="{Binding CoordinateMax}"
+                                                       Increment="1" FormatString="0.###" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2" Spacing="4">
+                                        <TextBlock Classes="caption" Text="Y" />
+                                        <NumericUpDown Value="{Binding Y}" Minimum="{Binding CoordinateMin}" Maximum="{Binding CoordinateMax}"
+                                                       Increment="1" FormatString="0.###" />
+                                    </StackPanel>
+                                </Grid>
+                                <StackPanel Spacing="4" IsVisible="{Binding IsPercentage}">
+                                    <TextBlock Classes="caption" Text="Monitor #" />
+                                    <NumericUpDown Value="{Binding MonitorNumber}" Minimum="1" Maximum="16" Increment="1" FormatString="0" />
+                                </StackPanel>
+                                <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Classes="primary"
+                                        Command="{Binding #EditorRoot.((vm:MacroViewModel)DataContext).PickStepPositionCommand}">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <PathIcon Data="{StaticResource Icon.Crosshair}" Width="15" Height="15" />
+                                        <TextBlock Text="Pick position on screen" Foreground="White" />
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- Keyboard -->
+                        <StackPanel Spacing="8" IsVisible="{Binding IsKey}">
+                            <TextBlock Classes="section" Text="KEY" Margin="0,6,0,0" />
+                            <ComboBox ItemsSource="{x:Static vm:Options.Keys}" SelectedItem="{Binding Key}"
+                                      HorizontalAlignment="Stretch" MaxDropDownHeight="360" />
+                        </StackPanel>
+
+                        <!-- Window -->
+                        <TextBlock Classes="section" Text="WINDOW" Margin="0,6,0,0" />
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <PathIcon Data="{StaticResource Icon.Window}" Width="14" Height="14" Foreground="{DynamicResource Doink.Text.Muted}" />
+                            <TextBlock Classes="secondary" Text="{Binding WindowText}" TextWrapping="Wrap" MaxWidth="260" />
+                        </StackPanel>
+                    </StackPanel>
+                </Panel>
+            </ScrollViewer>
+        </Border>
+    </Grid>
+</UserControl>

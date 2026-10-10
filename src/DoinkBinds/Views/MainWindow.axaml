@@ -1,0 +1,431 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:DoinkBinds.ViewModels"
+        xmlns:views="using:DoinkBinds.Views"
+        xmlns:conv="using:DoinkBinds.Converters"
+        mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="780"
+        x:Class="DoinkBinds.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="Doink Binds"
+        Icon="/Assets/doink.ico"
+        Width="1220" Height="800" MinWidth="940" MinHeight="600"
+        WindowStartupLocation="CenterScreen">
+
+    <Window.KeyBindings>
+        <KeyBinding Gesture="Ctrl+N" Command="{Binding NewMacroCommand}" />
+        <KeyBinding Gesture="Ctrl+I" Command="{Binding ImportCommand}" />
+        <KeyBinding Gesture="Ctrl+E" Command="{Binding ExportSelectedCommand}" />
+        <KeyBinding Gesture="Ctrl+OemComma" Command="{Binding ToggleSettingsCommand}" />
+    </Window.KeyBindings>
+
+    <Window.Styles>
+        <!-- Toast fades in/out instead of popping -->
+        <Style Selector="Border.toast">
+            <Setter Property="Opacity" Value="0" />
+            <Setter Property="IsHitTestVisible" Value="False" />
+            <Setter Property="RenderTransform" Value="translateY(12px)" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2" Easing="CubicEaseOut" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Border.toast.show">
+            <Setter Property="Opacity" Value="1" />
+            <Setter Property="IsHitTestVisible" Value="True" />
+            <Setter Property="RenderTransform" Value="translateY(0px)" />
+        </Style>
+
+        <!-- Settings panel slides/fades in -->
+        <Style Selector="Panel.overlay[IsVisible=true] Border.sheet">
+            <Style.Animations>
+                <Animation Duration="0:0:0.18" Easing="CubicEaseOut" FillMode="Forward">
+                    <KeyFrame Cue="0%">
+                        <Setter Property="Opacity" Value="0" />
+                        <Setter Property="TranslateTransform.Y" Value="16" />
+                    </KeyFrame>
+                    <KeyFrame Cue="100%">
+                        <Setter Property="Opacity" Value="1" />
+                        <Setter Property="TranslateTransform.Y" Value="0" />
+                    </KeyFrame>
+                </Animation>
+            </Style.Animations>
+        </Style>
+
+        <Style Selector="TreeViewItem">
+            <Setter Property="IsExpanded" Value="True" />
+        </Style>
+
+        <Style Selector="RadioButton.seg">
+            <Setter Property="Margin" Value="0,0,14,0" />
+        </Style>
+    </Window.Styles>
+
+    <Grid ColumnDefinitions="280,*">
+
+        <!-- ============================== SIDEBAR ============================== -->
+        <Border Grid.Column="0" Background="{DynamicResource Doink.Bg.Sidebar}"
+                BorderBrush="{DynamicResource Doink.Border.Subtle}" BorderThickness="0,0,1,0">
+            <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
+
+                <!-- Brand -->
+                <Grid Grid.Row="0" Margin="16,16,12,12" ColumnDefinitions="Auto,*,Auto">
+                    <Image Source="/Assets/doink-256.png" Width="30" Height="30" />
+                    <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="Doink Binds" FontWeight="Bold" FontSize="16" />
+                        <TextBlock Classes="caption" Text="Macro recorder" />
+                    </StackPanel>
+                    <Button Grid.Column="2" Classes="ghost icon" ToolTip.Tip="Settings (Ctrl+,)"
+                            Command="{Binding ToggleSettingsCommand}">
+                        <PathIcon Data="{StaticResource Icon.Settings}" />
+                    </Button>
+                </Grid>
+
+                <!-- Search -->
+                <TextBox Grid.Row="1" Margin="12,0,12,10" Watermark="Search macros"
+                         Text="{Binding SearchText}">
+                    <TextBox.InnerLeftContent>
+                        <PathIcon Data="{StaticResource Icon.Search}" Width="14" Height="14" Margin="10,0,0,0"
+                                  Foreground="{DynamicResource Doink.Text.Muted}" />
+                    </TextBox.InnerLeftContent>
+                </TextBox>
+
+                <!-- Library actions -->
+                <Grid Grid.Row="2" Margin="12,0,12,8" ColumnDefinitions="*,Auto,Auto">
+                    <Button Classes="primary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                            Command="{Binding NewMacroCommand}" ToolTip.Tip="New macro (Ctrl+N)">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <PathIcon Data="{StaticResource Icon.Plus}" Width="14" Height="14" />
+                            <TextBlock Text="New Macro" Foreground="White" />
+                        </StackPanel>
+                    </Button>
+                    <Button Grid.Column="1" Classes="icon" Margin="6,0,0,0" Height="34" Width="34"
+                            Command="{Binding NewFolderCommand}" ToolTip.Tip="New folder">
+                        <PathIcon Data="{StaticResource Icon.FolderPlus}" />
+                    </Button>
+                    <Button Grid.Column="2" Classes="icon" Margin="6,0,0,0" Height="34" Width="34"
+                            Command="{Binding ImportCommand}" ToolTip.Tip="Import .doink file (Ctrl+I)">
+                        <PathIcon Data="{StaticResource Icon.Import}" />
+                    </Button>
+                </Grid>
+
+                <!-- Library tree -->
+                <Panel Grid.Row="3">
+                    <TreeView ItemsSource="{Binding Folders}" SelectedItem="{Binding SelectedNode}"
+                              Margin="6,0,6,6">
+                        <TreeView.DataTemplates>
+                            <TreeDataTemplate DataType="vm:FolderViewModel" ItemsSource="{Binding Macros}">
+                                <Grid ColumnDefinitions="Auto,*,Auto" Background="Transparent">
+                                    <Grid.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="New macro here" Command="{Binding NewMacroCommand}" />
+                                            <MenuItem Header="Rename folder…" Command="{Binding RenameCommand}"
+                                                      IsEnabled="{Binding !IsRoot}" />
+                                            <MenuItem Header="Delete folder" Command="{Binding DeleteCommand}"
+                                                      IsEnabled="{Binding !IsRoot}" />
+                                        </ContextMenu>
+                                    </Grid.ContextMenu>
+                                    <PathIcon Data="{StaticResource Icon.Folder}" Width="14" Height="14"
+                                              Foreground="{DynamicResource Doink.Text.Muted}" />
+                                    <TextBlock Grid.Column="1" Margin="8,0" Classes="section" VerticalAlignment="Center"
+                                               Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Grid.Column="2" Classes="caption" VerticalAlignment="Center"
+                                               Text="{Binding CountText}" />
+                                </Grid>
+                            </TreeDataTemplate>
+                            <DataTemplate DataType="vm:MacroViewModel">
+                                <Grid ColumnDefinitions="*,Auto" Background="Transparent" Margin="0,2">
+                                    <Grid.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="Play" Command="{Binding PlayCommand}" />
+                                            <Separator />
+                                            <MenuItem Header="Rename…" Command="{Binding RenameCommand}" />
+                                            <MenuItem Header="Duplicate" Command="{Binding DuplicateCommand}" />
+                                            <MenuItem Header="Move to folder…" Command="{Binding MoveCommand}" />
+                                            <MenuItem Header="Export…" Command="{Binding ExportCommand}" />
+                                            <Separator />
+                                            <MenuItem Header="Delete" Command="{Binding DeleteCommand}" />
+                                        </ContextMenu>
+                                    </Grid.ContextMenu>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" FontWeight="Medium" />
+                                        <TextBlock Classes="caption" Text="{Binding Summary}" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                        <PathIcon Data="{StaticResource Icon.Play}" Width="12" Height="12"
+                                                  Foreground="{StaticResource Doink.Green}" IsVisible="{Binding IsPlaying}" />
+                                        <PathIcon Data="{StaticResource Icon.Lightning}" Width="12" Height="12"
+                                                  Foreground="{StaticResource Doink.Yellow}" IsVisible="{Binding HasTrigger}"
+                                                  ToolTip.Tip="{Binding TriggerHotkeyText}" />
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </TreeView.DataTemplates>
+                    </TreeView>
+
+                    <StackPanel IsVisible="{Binding IsLibraryEmpty}" VerticalAlignment="Center" Margin="24" Spacing="6">
+                        <TextBlock Classes="secondary" TextAlignment="Center" Text="No macros yet" FontWeight="SemiBold" />
+                        <TextBlock Classes="caption" TextAlignment="Center" TextWrapping="Wrap"
+                                   Text="Create a macro or press the record hotkey to start." />
+                    </StackPanel>
+                </Panel>
+
+                <!-- Footer: global on/off switch + status -->
+                <Border Grid.Row="4" Background="{DynamicResource Doink.Bg.Deep}" Padding="14,10">
+                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                            <PathIcon Data="{StaticResource Icon.Power}" Width="14" Height="14"
+                                      Foreground="{DynamicResource Doink.Text.Secondary}" />
+                            <TextBlock Text="Macro hotkeys" VerticalAlignment="Center" FontWeight="Medium" />
+                        </StackPanel>
+                        <ToggleSwitch Grid.Column="1" IsChecked="{Binding MacrosEnabled}" Margin="0,-6"
+                                      ToolTip.Tip="Turn macro hotkeys on / off" />
+                        <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="6" Margin="0,4,0,0">
+                            <Ellipse Classes="dot" Classes.recording="{Binding IsRecording}"
+                                     Classes.playing="{Binding IsPlaying}" Classes.paused="{Binding IsPaused}"
+                                     VerticalAlignment="Center" />
+                            <TextBlock Classes="caption" Text="{Binding StatusText}" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- ============================== MAIN ============================== -->
+        <Grid Grid.Column="1" RowDefinitions="Auto,*">
+
+            <!-- Permission / platform warning banner -->
+            <Border Grid.Row="0" IsVisible="{Binding PlatformWarning, Converter={x:Static ObjectConverters.IsNotNull}}"
+                    Background="{StaticResource Doink.Yellow.Soft}" Padding="16,10"
+                    BorderBrush="{StaticResource Doink.Yellow}" BorderThickness="0,0,0,1">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <PathIcon Data="{StaticResource Icon.Warning}" Foreground="{StaticResource Doink.Yellow}"
+                              Width="16" Height="16" VerticalAlignment="Top" Margin="0,2,10,0" />
+                    <TextBlock Grid.Column="1" Text="{Binding PlatformWarning}" TextWrapping="Wrap" />
+                    <Button Grid.Column="2" Classes="ghost icon" Command="{Binding DismissWarningCommand}" Margin="8,0,0,0">
+                        <PathIcon Data="{StaticResource Icon.Close}" />
+                    </Button>
+                </Grid>
+            </Border>
+
+            <Panel Grid.Row="1">
+
+                <!-- Empty state -->
+                <StackPanel IsVisible="{Binding !HasSelection}" VerticalAlignment="Center" HorizontalAlignment="Center"
+                            Spacing="12" MaxWidth="420">
+                    <Image Source="/Assets/doink-256.png" Width="72" Height="72" Opacity="0.9" />
+                    <TextBlock Classes="h1" TextAlignment="Center" Text="Welcome to Doink Binds" />
+                    <TextBlock Classes="secondary" TextAlignment="Center" TextWrapping="Wrap"
+                               Text="Record your mouse and keyboard, then replay it with one key. Select a macro on the left, create a new one, or just press the record hotkey." />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8" Margin="0,8,0,0">
+                        <Button Classes="danger" Command="{Binding ToggleRecordCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <PathIcon Data="{StaticResource Icon.Record}" Width="14" Height="14" />
+                                <TextBlock Text="Start recording" Foreground="White" />
+                            </StackPanel>
+                        </Button>
+                        <Button Command="{Binding NewMacroCommand}" Content="New empty macro" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Selected macro -->
+                <Grid IsVisible="{Binding HasSelection}" RowDefinitions="Auto,Auto,*" Margin="24,18,24,20">
+
+                    <!-- Header -->
+                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,14">
+                        <StackPanel Spacing="2">
+                            <TextBox Classes="title" Text="{Binding SelectedMacro.Name}" Margin="-6,0,0,0"
+                                     HorizontalAlignment="Left" MinWidth="200" />
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <TextBlock Classes="caption" Text="{Binding SelectedMacro.Summary}" />
+                                <TextBlock Classes="caption" Text="·" />
+                                <TextBlock Classes="caption" Text="Trigger:" />
+                                <Button Classes="ghost" Padding="6,0" Height="20" FontSize="12"
+                                        Content="{Binding SelectedMacro.TriggerHotkeyText}"
+                                        Command="{Binding SelectedMacro.CaptureTriggerCommand}"
+                                        ToolTip.Tip="Set a hotkey that plays this macro" />
+                                <Button Classes="ghost" Padding="4,0" Height="20" FontSize="11" Content="clear"
+                                        IsVisible="{Binding SelectedMacro.HasTrigger}"
+                                        Command="{Binding SelectedMacro.ClearTriggerCommand}" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Top">
+                            <Border Classes="pill" Classes.recording="{Binding IsRecording}"
+                                    Classes.playing="{Binding IsPlaying}" Classes.paused="{Binding IsPaused}"
+                                    VerticalAlignment="Center" Margin="0,0,6,0">
+                                <StackPanel Orientation="Horizontal" Spacing="7">
+                                    <Ellipse Classes="dot" Classes.recording="{Binding IsRecording}"
+                                             Classes.playing="{Binding IsPlaying}" Classes.paused="{Binding IsPaused}"
+                                             VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding StatusText}" FontWeight="SemiBold" FontSize="12" />
+                                </StackPanel>
+                            </Border>
+                            <Button Classes="ghost icon" ToolTip.Tip="Export (Ctrl+E)" Command="{Binding ExportSelectedCommand}">
+                                <PathIcon Data="{StaticResource Icon.Export}" />
+                            </Button>
+                            <Button Classes="ghost icon" ToolTip.Tip="Duplicate" Command="{Binding SelectedMacro.DuplicateCommand}">
+                                <PathIcon Data="{StaticResource Icon.Copy}" />
+                            </Button>
+                            <Button Classes="ghost icon" ToolTip.Tip="Delete macro" Command="{Binding DeleteSelectedCommand}">
+                                <PathIcon Data="{StaticResource Icon.Delete}" />
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Transport + playback options -->
+                    <Border Grid.Row="1" Classes="card" Margin="0,0,0,14" Padding="18,14">
+                        <Grid ColumnDefinitions="Auto,Auto,*">
+                            <!-- Record / Play / Stop -->
+                            <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                                <Button Classes="transport danger" Command="{Binding ToggleRecordCommand}"
+                                        ToolTip.Tip="{Binding RecordButtonTip}">
+                                    <Panel>
+                                        <PathIcon Data="{StaticResource Icon.Record}" IsVisible="{Binding !IsRecording}" />
+                                        <PathIcon Data="{StaticResource Icon.Stop}" IsVisible="{Binding IsRecording}" />
+                                    </Panel>
+                                </Button>
+                                <Button Classes="transport success" Command="{Binding PlayPauseCommand}"
+                                        ToolTip.Tip="{Binding PlayButtonTip}">
+                                    <Panel>
+                                        <PathIcon Data="{StaticResource Icon.Play}" IsVisible="{Binding !IsPlaying}" />
+                                        <PathIcon Data="{StaticResource Icon.Pause}" IsVisible="{Binding IsPlaying}" />
+                                    </Panel>
+                                </Button>
+                                <Button Classes="transport" Command="{Binding StopCommand}" ToolTip.Tip="{Binding StopButtonTip}">
+                                    <PathIcon Data="{StaticResource Icon.Stop}" />
+                                </Button>
+                            </StackPanel>
+
+                            <Rectangle Grid.Column="1" Width="1" Margin="20,4" Fill="{DynamicResource Doink.Border}" />
+
+                            <!-- Options -->
+                            <Grid Grid.Column="2" RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="Auto,*" VerticalAlignment="Center">
+                                <TextBlock Grid.Row="0" Classes="section" Text="REPEAT" VerticalAlignment="Center" Margin="0,0,14,0" />
+                                <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <RadioButton Classes="seg" GroupName="mode" Content="Once" IsChecked="{Binding SelectedMacro.IsModeOnce}" />
+                                    <RadioButton Classes="seg" GroupName="mode" IsChecked="{Binding SelectedMacro.IsModeLoopCount}">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <TextBlock Text="Loop" VerticalAlignment="Center" />
+                                            <NumericUpDown Value="{Binding SelectedMacro.LoopCount}" Minimum="1" Maximum="1000000"
+                                                           Increment="1" FormatString="0" Width="110" Height="30"
+                                                           IsEnabled="{Binding SelectedMacro.IsModeLoopCount}" />
+                                            <TextBlock Text="times" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </RadioButton>
+                                    <RadioButton Classes="seg" GroupName="mode" IsChecked="{Binding SelectedMacro.IsModeInfinite}"
+                                                 ToolTip.Tip="Loops until you press the Stop hotkey">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <PathIcon Data="{StaticResource Icon.Repeat}" Width="14" Height="14" />
+                                            <TextBlock Text="Until stopped" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </RadioButton>
+                                </StackPanel>
+
+                                <TextBlock Grid.Row="1" Classes="section" Text="SPEED" VerticalAlignment="Center" Margin="0,8,14,0" />
+                                <Grid Grid.Row="1" Grid.Column="1" ColumnDefinitions="*,Auto,Auto" Margin="0,8,0,0" MaxWidth="560" HorizontalAlignment="Left">
+                                    <Slider Minimum="0.25" Maximum="3" Value="{Binding SelectedMacro.Speed}" MinWidth="220"
+                                            TickFrequency="0.25" IsSnapToTickEnabled="False" VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="1" Text="{Binding SelectedMacro.SpeedText}" FontWeight="Bold"
+                                               Width="52" TextAlignment="Right" VerticalAlignment="Center" />
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" Margin="10,0,0,0">
+                                        <Button Classes="ghost" Padding="8,4" FontSize="12" Content="0.5×"
+                                                Command="{Binding SelectedMacro.SetSpeedCommand}" CommandParameter="0.5" />
+                                        <Button Classes="ghost" Padding="8,4" FontSize="12" Content="1×"
+                                                Command="{Binding SelectedMacro.SetSpeedCommand}" CommandParameter="1" />
+                                        <Button Classes="ghost" Padding="8,4" FontSize="12" Content="2×"
+                                                Command="{Binding SelectedMacro.SetSpeedCommand}" CommandParameter="2" />
+                                    </StackPanel>
+                                </Grid>
+
+                                <TextBlock Grid.Row="2" Classes="section" Text="WINDOW" VerticalAlignment="Center" Margin="0,8,14,0" />
+                                <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Spacing="16" Margin="0,8,0,0">
+                                    <CheckBox Content="Restore window focus" IsChecked="{Binding SelectedMacro.RestoreWindowFocus}"
+                                              ToolTip.Tip="Bring the recorded app to the front when the macro switches to it" />
+                                    <CheckBox Content="Wait for window" IsChecked="{Binding SelectedMacro.WaitForWindow}"
+                                              ToolTip.Tip="Pause until the recorded app is focused (timeout in Settings)" />
+                                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                        <TextBlock Classes="caption" Text="Loop gap" VerticalAlignment="Center" />
+                                        <NumericUpDown Value="{Binding SelectedMacro.LoopDelayMs}" Minimum="0" Maximum="3600000"
+                                                       Increment="50" FormatString="0" Width="130" Height="30" />
+                                        <TextBlock Classes="caption" Text="ms" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Grid>
+                        </Grid>
+                    </Border>
+
+                    <!-- Progress bar during playback -->
+                    <StackPanel Grid.Row="1" VerticalAlignment="Bottom" Margin="18,0,18,4" IsVisible="{Binding IsBusy}">
+                        <ProgressBar Value="{Binding ProgressValue}" Height="3" MinHeight="3"
+                                     IsVisible="{Binding !IsRecording}" Foreground="{StaticResource Doink.Green}" />
+                    </StackPanel>
+
+                    <!-- Timeline + step editor -->
+                    <views:MacroEditorView Grid.Row="2" DataContext="{Binding SelectedMacro}" />
+
+                    <!-- Live recording overlay on top of the timeline -->
+                    <Border Grid.Row="2" Classes="card" IsVisible="{Binding IsRecording}"
+                            Background="{DynamicResource Doink.Bg.Deep}" BorderBrush="{StaticResource Doink.Red}">
+                        <Grid RowDefinitions="Auto,Auto,*">
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <Ellipse Classes="dot recording" Width="12" Height="12" VerticalAlignment="Center" />
+                                <TextBlock Classes="h2" Text="Recording…" />
+                                <TextBlock Classes="secondary mono" Text="{Binding RecordingInfo}" VerticalAlignment="Center" />
+                            </StackPanel>
+                            <TextBlock Grid.Row="1" Classes="caption" Margin="0,6,0,10" TextWrapping="Wrap"
+                                       Text="Use your mouse and keyboard normally. Press the record hotkey or the stop button to finish. Clicks inside Doink Binds are ignored." />
+                            <ItemsControl Grid.Row="2" ItemsSource="{Binding LiveActions}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="x:String">
+                                        <TextBlock Classes="mono secondary" Text="{Binding}" Margin="0,2" FontSize="12" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <!-- Settings sheet -->
+                <Panel Classes="overlay" IsVisible="{Binding IsSettingsOpen}" Background="{DynamicResource Doink.Overlay}">
+                    <Border Classes="sheet card" Margin="40,30" MaxWidth="780" Padding="0"
+                            Background="{DynamicResource Doink.Bg.Main}" BorderBrush="{DynamicResource Doink.Border}"
+                            BoxShadow="0 16 48 0 #80000000">
+                        <views:SettingsView DataContext="{Binding Settings}" />
+                    </Border>
+                </Panel>
+
+                <!-- Toast -->
+                <Border Classes="toast" Classes.show="{Binding IsToastVisible}"
+                        Classes.error="{Binding IsToastError}" Classes.success="{Binding IsToastSuccess}"
+                        HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,22" MaxWidth="560">
+                    <Grid ColumnDefinitions="Auto,*,Auto">
+                        <Panel Margin="0,0,10,0" VerticalAlignment="Center">
+                            <PathIcon Data="{StaticResource Icon.Check}" Width="16" Height="16"
+                                      Foreground="{StaticResource Doink.Green}" IsVisible="{Binding IsToastSuccess}" />
+                            <PathIcon Data="{StaticResource Icon.Warning}" Width="16" Height="16"
+                                      Foreground="{StaticResource Doink.Red}" IsVisible="{Binding IsToastError}" />
+                            <PathIcon Data="{StaticResource Icon.Info}" Width="16" Height="16"
+                                      Foreground="{StaticResource Doink.Accent}">
+                                <PathIcon.IsVisible>
+                                    <MultiBinding Converter="{x:Static BoolConverters.And}">
+                                        <Binding Path="!IsToastSuccess" />
+                                        <Binding Path="!IsToastError" />
+                                    </MultiBinding>
+                                </PathIcon.IsVisible>
+                            </PathIcon>
+                        </Panel>
+                        <TextBlock Grid.Column="1" Text="{Binding ToastMessage}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                        <Button Grid.Column="2" Classes="ghost icon" Width="24" Height="24" Padding="4" Margin="10,0,0,0"
+                                Command="{Binding DismissToastCommand}">
+                            <PathIcon Data="{StaticResource Icon.Close}" Width="10" Height="10" />
+                        </Button>
+                    </Grid>
+                </Border>
+            </Panel>
+        </Grid>
+    </Grid>
+</Window>
