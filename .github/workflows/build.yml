@@ -21,6 +21,7 @@ jobs:
     needs: test
     runs-on: windows-latest
     strategy:
+      fail-fast: false
       matrix:
         rid: [ win-x64, win-arm64 ]
     steps:
@@ -46,6 +47,7 @@ jobs:
     needs: test
     runs-on: macos-latest
     strategy:
+      fail-fast: false
       matrix:
         rid: [ osx-arm64, osx-x64 ]
     steps:

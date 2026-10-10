@@ -13,10 +13,10 @@ PROJECT="$ROOT/src/DoinkBinds/DoinkBinds.csproj"
 OUT="$ROOT/publish/$RID"
 APP="$OUT/Doink Binds.app"
 
-echo "▶ Publishing $RID…"
-dotnet publish "$PROJECT" -p:PublishProfile="$RID"
+echo "> Publishing ${RID}..."
+dotnet publish "$PROJECT" -p:PublishProfile="${RID}"
 
-echo "▶ Creating app bundle…"
+echo "> Creating app bundle..."
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$ROOT/build/macos/Info.plist" "$APP/Contents/Info.plist"
@@ -31,16 +31,16 @@ chmod +x "$APP/Contents/MacOS/DoinkBinds"
 if [[ "$(uname)" == "Darwin" ]]; then
     # Ad-hoc signature: required on Apple Silicon, and gives macOS a stable identity for the
     # Accessibility / Input Monitoring permissions. Replace "-" with your Developer ID to distribute.
-    echo "▶ Signing (ad-hoc)…"
+    echo "> Signing (ad-hoc)..."
     codesign --force --deep --sign - "$APP"
 
-    echo "▶ Building DMG…"
+    echo "> Building DMG..."
     DMG="$ROOT/publish/DoinkBinds-$RID.dmg"
     rm -f "$DMG"
     hdiutil create -volname "Doink Binds" -srcfolder "$APP" -ov -format UDZO "$DMG" >/dev/null
-    echo "✔ $DMG"
+    echo "OK: $DMG"
 else
-    echo "ℹ Not on macOS: skipping codesign + DMG (copy the .app to a Mac and run 'codesign --force --deep --sign - \"Doink Binds.app\"')."
+    echo "Note: Not on macOS: skipping codesign + DMG (copy the .app to a Mac and run 'codesign --force --deep --sign - \"Doink Binds.app\"')."
 fi
 
-echo "✔ $APP"
+echo "OK: $APP"
