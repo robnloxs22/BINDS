@@ -13,6 +13,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Inter font (SIL Open Font License) used to render text for OCR tests -->
+    <None Include="Assets\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\DoinkBinds\DoinkBinds.csproj" />
   </ItemGroup>
 

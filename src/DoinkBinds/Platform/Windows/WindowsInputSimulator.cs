@@ -103,6 +103,24 @@ public sealed class WindowsInputSimulator : IInputSimulator
         Send(new INPUT { type = INPUT_KEYBOARD, U = new InputUnion { ki = ki } });
     }
 
+    /// <summary>
+    /// Types text as Unicode (KEYEVENTF_UNICODE), so it works with any keyboard layout and any
+    /// character. Newlines and tabs are sent as real Enter / Tab presses, which apps handle better.
+    /// </summary>
+    public void TypeText(string text)
+    {
+        foreach (var ch in text)
+        {
+            if (ch == '\r') continue;
+            if (ch == '\n') { Key(KeyCodes.Enter, true); Key(KeyCodes.Enter, false); continue; }
+            if (ch == '\t') { Key(KeyCodes.Tab, true); Key(KeyCodes.Tab, false); continue; }
+
+            // Surrogate pairs are simply sent as two consecutive UTF-16 units, as Windows expects.
+            Send(new INPUT { type = INPUT_KEYBOARD, U = new InputUnion { ki = new KEYBDINPUT { wScan = ch, dwFlags = KEYEVENTF_UNICODE, dwExtraInfo = DoinkMagic } } });
+            Send(new INPUT { type = INPUT_KEYBOARD, U = new InputUnion { ki = new KEYBDINPUT { wScan = ch, dwFlags = KEYEVENTF_UNICODE | KEYEVENTF_KEYUP, dwExtraInfo = DoinkMagic } } });
+        }
+    }
+
     /// <summary>Keys that live on the "extended" part of the keyboard need KEYEVENTF_EXTENDEDKEY.</summary>
     private static bool IsExtendedKey(int vk) => vk is
         KeyCodes.Insert or KeyCodes.Delete or KeyCodes.Home or KeyCodes.End or KeyCodes.PageUp or KeyCodes.PageDown or

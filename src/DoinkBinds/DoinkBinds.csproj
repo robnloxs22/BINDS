@@ -29,6 +29,9 @@
 
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
+    <!-- Bundled OCR models (PaddleOCR PP-OCRv4 via RapidOCR, Apache-2.0). Embedded so the app stays one file. -->
+    <EmbeddedResource Include="Ocr\det.onnx" LogicalName="DoinkBinds.Ocr.det.onnx" />
+    <EmbeddedResource Include="Ocr\rec.onnx" LogicalName="DoinkBinds.Ocr.rec.onnx" />
     <None Include="..\..\samples\*.doink" Link="Samples\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
@@ -40,6 +43,7 @@
     <PackageReference Include="Avalonia.Diagnostics" Version="11.3.22" Condition="'$(Configuration)' == 'Debug'" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.20.1" />
   </ItemGroup>
 
 </Project>

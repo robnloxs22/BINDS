@@ -10,8 +10,11 @@ public interface IPinPointPicker
     Task<DesktopPoint?> PickAsync(string? hint = null);
 }
 
+/// <summary>Extra reference points for the Window and Found positioning modes.</summary>
+public sealed record PositionContext(DesktopPoint? WindowOrigin, DesktopPoint? Found);
+
 /// <summary>
-/// Converts between the four mouse positioning modes and resolves positions to real
+/// Converts between the mouse positioning modes and resolves positions to real
 /// desktop coordinates at playback time (multi-monitor aware).
 /// </summary>
 public interface IMousePositionService
@@ -20,10 +23,10 @@ public interface IMousePositionService
     DesktopPoint GetCursorPosition();
 
     /// <summary>Builds a position in <paramref name="mode"/> from an absolute desktop point.</summary>
-    MousePosition FromAbsolute(DesktopPoint point, MousePositionMode mode, DesktopPoint previous);
+    MousePosition FromAbsolute(DesktopPoint point, MousePositionMode mode, DesktopPoint previous, PositionContext? context = null);
 
     /// <summary>Resolves a stored position to a desktop point. <paramref name="current"/> is used for Relative mode.</summary>
-    DesktopPoint Resolve(MousePosition position, DesktopPoint current);
+    DesktopPoint Resolve(MousePosition position, DesktopPoint current, PositionContext? context = null);
 
     /// <summary>Converts a position to another mode, preserving where it points on the current screen layout.</summary>
     MousePosition Convert(MousePosition position, MousePositionMode newMode, DesktopPoint previous);
@@ -58,10 +61,21 @@ public sealed class MousePositionService : IMousePositionService
 
     public Task<DesktopPoint?> PickPointAsync(string? hint = null) => _picker.PickAsync(hint);
 
-    public MousePosition FromAbsolute(DesktopPoint point, MousePositionMode mode, DesktopPoint previous)
+    public MousePosition FromAbsolute(DesktopPoint point, MousePositionMode mode, DesktopPoint previous, PositionContext? context = null)
     {
         switch (mode)
         {
+            case MousePositionMode.Window:
+            {
+                var o = context?.WindowOrigin ?? default;
+                return new MousePosition { Mode = mode, X = Math.Round(point.X - o.X), Y = Math.Round(point.Y - o.Y) };
+            }
+            case MousePositionMode.Found:
+            {
+                var f = context?.Found ?? point;
+                return new MousePosition { Mode = mode, X = Math.Round(point.X - f.X), Y = Math.Round(point.Y - f.Y) };
+            }
+
             case MousePositionMode.Relative:
                 return new MousePosition { Mode = mode, X = point.X - previous.X, Y = point.Y - previous.Y };
 
@@ -95,12 +109,26 @@ public sealed class MousePositionService : IMousePositionService
         }
     }
 
-    public DesktopPoint Resolve(MousePosition position, DesktopPoint current)
+    public DesktopPoint Resolve(MousePosition position, DesktopPoint current, PositionContext? context = null)
     {
         var screens = GetScreens();
         DesktopPoint p;
         switch (position.Mode)
         {
+            case MousePositionMode.Window:
+            {
+                // Without a window (not found / not specified) the offset is treated as absolute.
+                var o = context?.WindowOrigin ?? default;
+                p = new DesktopPoint(o.X + position.X, o.Y + position.Y);
+                break;
+            }
+            case MousePositionMode.Found:
+            {
+                var f = context?.Found ?? current;
+                p = new DesktopPoint(f.X + position.X, f.Y + position.Y);
+                break;
+            }
+
             case MousePositionMode.Relative:
                 p = new DesktopPoint(current.X + position.X, current.Y + position.Y);
                 break;
@@ -135,6 +163,9 @@ public sealed class MousePositionService : IMousePositionService
         var absolute = Resolve(position, previous);
         return FromAbsolute(absolute, newMode, previous);
     }
+
+    /// <summary>Bounding box of all monitors.</summary>
+    public static ScreenInfo VirtualDesktop(IReadOnlyList<ScreenInfo> screens) => VirtualBounds(screens);
 
     // ---------- helpers ----------
 

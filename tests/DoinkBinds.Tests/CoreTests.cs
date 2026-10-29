@@ -338,15 +338,16 @@ public class HotkeyTests
     {
         var h = new Harness();
         var id = Guid.NewGuid();
-        h.Hotkeys.SetMacroTriggers(new[] { (id, new Hotkey(KeyCodes.F(10))) });
+        h.Hotkeys.SetMacroTriggers(new[] { (id, new Hotkey(KeyCodes.F(11))) });
         Guid? fired = null;
         h.Hotkeys.MacroTriggered += (_, g) => fired = g;
 
-        h.Platform.FakeHook.Raise(RawInputKind.KeyDown, key: KeyCodes.F(10));
+        h.Platform.FakeHook.Raise(RawInputKind.KeyDown, key: KeyCodes.F(11));
         Assert.Equal(id, fired);
-        Assert.True(h.Hotkeys.IsHotkeyKey(KeyCodes.F(10)));
+        Assert.True(h.Hotkeys.IsHotkeyKey(KeyCodes.F(11)));
         Assert.NotNull(h.Hotkeys.FindConflict(new Hotkey(KeyCodes.F(6))));
-        Assert.Null(h.Hotkeys.FindConflict(new Hotkey(KeyCodes.F(11))));
+        Assert.NotNull(h.Hotkeys.FindConflict(new Hotkey(KeyCodes.F(10)))); // default "toggle rules"
+        Assert.Null(h.Hotkeys.FindConflict(new Hotkey(KeyCodes.F(12))));
     }
 }
 

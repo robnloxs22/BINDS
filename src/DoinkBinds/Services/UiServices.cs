@@ -25,6 +25,13 @@ public interface IShellService
     void ApplyTheme(string theme);
 }
 
+/// <summary>Pop-up notifications raised by macros/rules (Notify steps). Implemented in the UI layer.</summary>
+public interface INotificationService
+{
+    /// <summary>Thread-safe. Shows a floating notification that stays visible even when Doink Binds is minimised.</summary>
+    void Notify(string title, string message, ToastKind kind = ToastKind.Info);
+}
+
 public enum ToastKind
 {
     Info,

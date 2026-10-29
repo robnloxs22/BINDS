@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using DoinkBinds.Models;
+using DoinkBinds.Vision;
 
 namespace DoinkBinds.Platform;
 
@@ -59,6 +60,9 @@ public interface IInputSimulator
     void MouseWheel(int delta, bool horizontal);
     void Key(int keyCode, bool down);
 
+    /// <summary>Types text directly as Unicode characters (independent of keyboard layout).</summary>
+    void TypeText(string text);
+
     /// <summary>Send keys as hardware scan codes (Windows only; ignored elsewhere).</summary>
     bool UseScanCodes { get; set; }
 
@@ -66,12 +70,59 @@ public interface IInputSimulator
     IDisposable BeginHighPrecisionTiming();
 }
 
-/// <summary>Foreground window inspection and activation.</summary>
+/// <summary>Foreground window inspection, activation and window management.</summary>
 public interface IWindowService
 {
     WindowTarget? GetForegroundWindow();
     bool TryActivate(WindowTarget target);
     bool IsOwnProcessForeground();
+
+    /// <summary>All normal top-level windows currently on screen (front-most first).</summary>
+    IReadOnlyList<WindowInfo> ListWindows();
+
+    bool Focus(WindowInfo window);
+
+    /// <summary>Moves/resizes so the visible frame matches the given desktop rectangle.</summary>
+    bool SetBounds(WindowInfo window, double x, double y, double width, double height);
+
+    bool SetState(WindowInfo window, WindowStateKind state);
+    bool Close(WindowInfo window);
+}
+
+/// <summary>Reads pixels from the screen.</summary>
+public interface IScreenCapture
+{
+    /// <summary>Captures a desktop rectangle. Returns null if capturing isn't possible (e.g. permission missing).</summary>
+    BgraImage? Capture(double x, double y, double width, double height);
+}
+
+/// <summary>Shared window-matching rules so every platform behaves the same.</summary>
+public static class WindowMatching
+{
+    /// <summary>Process must match; then an exact title wins, then a title containing the target title, then any window of the process.</summary>
+    public static WindowInfo? Find(IReadOnlyList<WindowInfo> windows, WindowTarget target, string? titleContains = null)
+    {
+        var candidates = windows.Where(w =>
+            string.IsNullOrWhiteSpace(target.ProcessName) ||
+            string.Equals(w.ProcessName, target.ProcessName, StringComparison.OrdinalIgnoreCase)).ToList();
+
+        if (!string.IsNullOrWhiteSpace(titleContains))
+            return candidates.FirstOrDefault(w => w.Title.Contains(titleContains, StringComparison.OrdinalIgnoreCase));
+
+        if (string.IsNullOrWhiteSpace(target.ProcessName) && string.IsNullOrWhiteSpace(target.Title)) return null;
+
+        if (!string.IsNullOrEmpty(target.Title))
+        {
+            var exact = candidates.FirstOrDefault(w => w.Title == target.Title);
+            if (exact is not null) return exact;
+            var partial = candidates.FirstOrDefault(w =>
+                w.Title.Contains(target.Title, StringComparison.OrdinalIgnoreCase) ||
+                (w.Title.Length > 0 && target.Title.Contains(w.Title, StringComparison.OrdinalIgnoreCase)));
+            if (partial is not null) return partial;
+            if (string.IsNullOrWhiteSpace(target.ProcessName)) return null;
+        }
+        return candidates.FirstOrDefault();
+    }
 }
 
 public interface IScreenService
@@ -92,6 +143,10 @@ public interface IPlatformServices
     IInputSimulator Input { get; }
     IWindowService Windows { get; }
     IScreenService Screens { get; }
+    IScreenCapture Capture { get; }
+
+    /// <summary>Plays the system alert sound.</summary>
+    void Beep();
 
     /// <summary>Returns a user-facing message if OS permissions are missing, otherwise null.</summary>
     string? CheckPermissions(bool prompt);

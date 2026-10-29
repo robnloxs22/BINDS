@@ -124,6 +124,52 @@ public sealed class MacInputSimulator : IInputSimulator
         }
     }
 
+    /// <summary>
+    /// Types Unicode text by attaching the characters to a synthetic key event
+    /// (keyboard-layout independent). Newlines/tabs are sent as real Return/Tab presses.
+    /// </summary>
+    public void TypeText(string text)
+    {
+        foreach (var chunk in Chunks(text))
+        {
+            if (chunk == "\n") { Key(KeyCodes.Enter, true); Key(KeyCodes.Enter, false); continue; }
+            if (chunk == "\t") { Key(KeyCodes.Tab, true); Key(KeyCodes.Tab, false); continue; }
+
+            var chars = chunk.ToCharArray();
+            foreach (var down in new[] { true, false })
+            {
+                var e = CGEventCreateKeyboardEvent(IntPtr.Zero, 0, down);
+                if (e == IntPtr.Zero) continue;
+                try
+                {
+                    CGEventKeyboardSetUnicodeString(e, (nuint)chars.Length, chars);
+                    CGEventSetIntegerValueField(e, kCGEventSourceUserData, DoinkMagic);
+                    CGEventSetFlags(e, 0); // no modifiers: the characters are already final
+                    CGEventPost(kCGHIDEventTap, e);
+                }
+                finally { CFRelease(e); }
+            }
+        }
+    }
+
+    /// <summary>Splits text into ≤16-unit pieces (macOS limit is 20) and isolates \n / \t.</summary>
+    private static IEnumerable<string> Chunks(string text)
+    {
+        var sb = new System.Text.StringBuilder();
+        foreach (var ch in text.Replace("\r\n", "\n").Replace('\r', '\n'))
+        {
+            if (ch is '\n' or '\t')
+            {
+                if (sb.Length > 0) { yield return sb.ToString(); sb.Clear(); }
+                yield return ch.ToString();
+                continue;
+            }
+            sb.Append(ch);
+            if (sb.Length >= 16 && !char.IsHighSurrogate(ch)) { yield return sb.ToString(); sb.Clear(); }
+        }
+        if (sb.Length > 0) yield return sb.ToString();
+    }
+
     private void Post(IntPtr e)
     {
         if (e == IntPtr.Zero) return;

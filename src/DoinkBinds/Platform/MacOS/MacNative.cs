@@ -168,6 +168,175 @@ internal static class MacNative
         }
     }
 
+    // ---- Unicode typing ----
+    [DllImport(CoreGraphics)]
+    public static extern void CGEventKeyboardSetUnicodeString(IntPtr cgEvent, nuint length, [In] char[] chars);
+
+    // ---- Screen capture ----
+    [DllImport(CoreGraphics)]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static extern bool CGPreflightScreenCaptureAccess();
+
+    [DllImport(CoreGraphics)]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static extern bool CGRequestScreenCaptureAccess();
+
+    [DllImport(CoreGraphics)]
+    public static extern int CGGetDisplaysWithRect(CGRect rect, uint maxDisplays, [Out] uint[] displays, out uint matchingDisplayCount);
+
+    [DllImport(CoreGraphics)]
+    public static extern IntPtr CGDisplayCreateImageForRect(uint display, CGRect rect);
+
+    [DllImport(CoreGraphics)]
+    public static extern nuint CGImageGetWidth(IntPtr image);
+
+    [DllImport(CoreGraphics)]
+    public static extern nuint CGImageGetHeight(IntPtr image);
+
+    [DllImport(CoreGraphics)]
+    public static extern nuint CGImageGetBytesPerRow(IntPtr image);
+
+    [DllImport(CoreGraphics)]
+    public static extern nuint CGImageGetBitsPerPixel(IntPtr image);
+
+    [DllImport(CoreGraphics)]
+    public static extern uint CGImageGetBitmapInfo(IntPtr image);
+
+    [DllImport(CoreGraphics)]
+    public static extern IntPtr CGImageGetDataProvider(IntPtr image);
+
+    [DllImport(CoreGraphics)]
+    public static extern IntPtr CGDataProviderCopyData(IntPtr provider);
+
+    [DllImport(CoreFoundation)]
+    public static extern IntPtr CFDataGetBytePtr(IntPtr data);
+
+    [DllImport(CoreFoundation)]
+    public static extern nint CFDataGetLength(IntPtr data);
+
+    // ---- Window list ----
+    public const uint kCGWindowListOptionOnScreenOnly = 1, kCGWindowListExcludeDesktopElements = 16;
+
+    [DllImport(CoreGraphics)]
+    public static extern IntPtr CGWindowListCopyWindowInfo(uint option, uint relativeToWindow);
+
+    [DllImport(CoreGraphics)]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static extern bool CGRectMakeWithDictionaryRepresentation(IntPtr dict, out CGRect rect);
+
+    // ---- CoreFoundation collections ----
+    public const uint kCFStringEncodingUTF8 = 0x08000100;
+    public const int kCFNumberSInt32Type = 3, kCFNumberSInt64Type = 4, kCFNumberDoubleType = 13;
+
+    [DllImport(CoreFoundation)]
+    public static extern IntPtr CFStringCreateWithCString(IntPtr alloc, [MarshalAs(UnmanagedType.LPUTF8Str)] string str, uint encoding);
+
+    [DllImport(CoreFoundation)]
+    public static extern nint CFStringGetLength(IntPtr str);
+
+    [DllImport(CoreFoundation)]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static extern bool CFStringGetCString(IntPtr str, byte[] buffer, nint bufferSize, uint encoding);
+
+    [DllImport(CoreFoundation)]
+    public static extern nuint CFGetTypeID(IntPtr cf);
+
+    [DllImport(CoreFoundation)]
+    public static extern nuint CFStringGetTypeID();
+
+    [DllImport(CoreFoundation)]
+    public static extern nint CFArrayGetCount(IntPtr array);
+
+    [DllImport(CoreFoundation)]
+    public static extern IntPtr CFArrayGetValueAtIndex(IntPtr array, nint index);
+
+    [DllImport(CoreFoundation)]
+    public static extern IntPtr CFDictionaryGetValue(IntPtr dict, IntPtr key);
+
+    [DllImport(CoreFoundation)]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static extern bool CFNumberGetValue(IntPtr number, int type, out long value);
+
+    [DllImport(CoreFoundation)]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static extern bool CFBooleanGetValue(IntPtr boolean);
+
+    private static readonly Dictionary<string, IntPtr> CfStrings = new();
+
+    /// <summary>Cached, never-released CFString for a constant key.</summary>
+    public static IntPtr CFStr(string s)
+    {
+        lock (CfStrings)
+        {
+            if (!CfStrings.TryGetValue(s, out var p))
+            {
+                p = CFStringCreateWithCString(IntPtr.Zero, s, kCFStringEncodingUTF8);
+                CfStrings[s] = p;
+            }
+            return p;
+        }
+    }
+
+    public static string CFStringToString(IntPtr str)
+    {
+        if (str == IntPtr.Zero || CFGetTypeID(str) != CFStringGetTypeID()) return "";
+        var len = CFStringGetLength(str);
+        var buf = new byte[len * 4 + 1];
+        return CFStringGetCString(str, buf, buf.Length, kCFStringEncodingUTF8)
+            ? System.Text.Encoding.UTF8.GetString(buf, 0, Array.IndexOf(buf, (byte)0) is var n and >= 0 ? n : buf.Length)
+            : "";
+    }
+
+    private static IntPtr GetExport(string lib, string name)
+    {
+        var h = NativeLibrary.Load(lib);
+        return Marshal.ReadIntPtr(NativeLibrary.GetExport(h, name));
+    }
+
+    private static IntPtr? _cfTrue, _cfFalse;
+    public static IntPtr kCFBooleanTrue => _cfTrue ??= GetExport(CoreFoundation, "kCFBooleanTrue");
+    public static IntPtr kCFBooleanFalse => _cfFalse ??= GetExport(CoreFoundation, "kCFBooleanFalse");
+
+    // ---- Accessibility (moving / resizing other apps' windows) ----
+    public const int kAXValueCGPointType = 1, kAXValueCGSizeType = 2;
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct CGSize
+    {
+        public double Width;
+        public double Height;
+    }
+
+    [DllImport(ApplicationServices)]
+    public static extern IntPtr AXUIElementCreateApplication(int pid);
+
+    [DllImport(ApplicationServices)]
+    public static extern int AXUIElementCopyAttributeValue(IntPtr element, IntPtr attribute, out IntPtr value);
+
+    [DllImport(ApplicationServices)]
+    public static extern int AXUIElementSetAttributeValue(IntPtr element, IntPtr attribute, IntPtr value);
+
+    [DllImport(ApplicationServices)]
+    public static extern int AXUIElementPerformAction(IntPtr element, IntPtr action);
+
+    [DllImport(ApplicationServices)]
+    public static extern IntPtr AXValueCreate(int type, ref CGPoint value);
+
+    [DllImport(ApplicationServices, EntryPoint = "AXValueCreate")]
+    public static extern IntPtr AXValueCreateSize(int type, ref CGSize value);
+
+    [DllImport(ApplicationServices)]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static extern bool AXValueGetValue(IntPtr value, int type, out CGPoint point);
+
+    [DllImport(ApplicationServices, EntryPoint = "AXValueGetValue")]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static extern bool AXValueGetValueSize(IntPtr value, int type, out CGSize size);
+
+    // ---- AppKit ----
+    [DllImport("/System/Library/Frameworks/AppKit.framework/AppKit")]
+    public static extern void NSBeep();
+
     // ---- Objective-C runtime (used for NSWorkspace) ----
     [DllImport(ObjC)]
     public static extern IntPtr objc_getClass(string name);

@@ -4,6 +4,8 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 using DoinkBinds.Platform;
 using DoinkBinds.Services;
+using DoinkBinds.Services.Automation;
+using DoinkBinds.Vision;
 using DoinkBinds.ViewModels;
 using DoinkBinds.Views;
 using Microsoft.Extensions.DependencyInjection;
@@ -40,10 +42,20 @@ public partial class App : Application
         services.AddSingleton<IMacroRecorderService, MacroRecorderService>();
         services.AddSingleton<IMacroPlayerService, MacroPlayerService>();
 
+        // Automation: screen reading, variables, rules, layouts, reports
+        services.AddSingleton<IOcrEngine, PaddleOcrEngine>();
+        services.AddSingleton<IScreenVision, ScreenVision>();
+        services.AddSingleton<VariableStore>();
+        services.AddSingleton<IAutomationStore, AutomationStore>();
+        services.AddSingleton<IReportService, ReportService>();
+        services.AddSingleton<ILayoutService, LayoutService>();
+        services.AddSingleton<IRuleEngine, RuleEngine>();
+
         // UI-layer services
         services.AddSingleton<IPinPointPicker, PinPointPicker>();
         services.AddSingleton<IDialogService, DialogService>();
         services.AddSingleton<IShellService, ShellService>();
+        services.AddSingleton<INotificationService, NotificationService>();
 
         // View models
         services.AddSingleton<MainWindowViewModel>();

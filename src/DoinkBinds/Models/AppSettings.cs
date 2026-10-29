@@ -42,6 +42,19 @@ public sealed class AppSettings
     /// <summary>"Dark" (default), "Light" or "System".</summary>
     public string Theme { get; set; } = "Dark";
 
+    // ---- Background ----
+    /// <summary>Master switch for If/Then rules watching the screen in the background.</summary>
+    public bool RulesEnabled { get; set; }
+
+    /// <summary>Closing the window keeps Doink Binds running in the system tray.</summary>
+    public bool CloseToTray { get; set; } = true;
+
+    public bool StartWithSystem { get; set; }
+    public bool StartMinimized { get; set; }
+
+    /// <summary>Number of run reports to keep on disk.</summary>
+    public int MaxReports { get; set; } = 100;
+
     // ---- State ----
     public bool MacrosEnabled { get; set; } = true;
     public Guid? LastSelectedMacroId { get; set; }
@@ -53,6 +66,8 @@ public sealed class AppSettings
         new() { Action = HotkeyAction.PlayPause, Hotkey = new Hotkey(KeyCodes.F(7)) },
         new() { Action = HotkeyAction.ToggleMacros, Hotkey = new Hotkey(KeyCodes.F(8)) },
         new() { Action = HotkeyAction.StopLoop, Hotkey = new Hotkey(KeyCodes.F(9)) },
+        new() { Action = HotkeyAction.ToggleRules, Hotkey = new Hotkey(KeyCodes.F(10)) },
+        new() { Action = HotkeyAction.GuidedRecording, Hotkey = new Hotkey(KeyCodes.F(6), HotkeyModifiers.Shift) },
     };
 
     /// <summary>Makes sure every action has a binding entry (e.g. after an upgrade added a new action).</summary>
