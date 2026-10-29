@@ -1,5 +1,9 @@
 name: Build & Package
 
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: [ main, master, 'claude/**' ]
@@ -38,10 +42,12 @@ jobs:
           & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DRid=${{ matrix.rid }}" build\windows\DoinkBinds.iss
       - uses: actions/upload-artifact@v4
         with:
-          name: DoinkBinds-${{ matrix.rid }}
-          path: |
-            publish/${{ matrix.rid }}/
-            publish/DoinkBinds-Setup-${{ matrix.rid }}.exe
+          name: DoinkBinds-Setup-${{ matrix.rid }}
+          path: publish/DoinkBinds-Setup-${{ matrix.rid }}.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DoinkBinds-portable-${{ matrix.rid }}
+          path: publish/${{ matrix.rid }}/
 
   macos:
     needs: test
@@ -61,3 +67,53 @@ jobs:
         with:
           name: DoinkBinds-${{ matrix.rid }}
           path: publish/DoinkBinds-${{ matrix.rid }}.dmg
+
+  # Puts the installers on a GitHub Release page so anyone can download them directly
+  # (no GitHub login, no zip). Branch pushes update the "latest" pre-release; v* tags make a real release.
+  release:
+    needs: [ windows, macos ]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+      - name: Collect installers
+        run: |
+          mkdir out
+          cp "$(find dist -name 'DoinkBinds-Setup-win-x64.exe')"   out/DoinkBinds-Setup-Windows.exe
+          cp "$(find dist -name 'DoinkBinds-Setup-win-arm64.exe')" out/DoinkBinds-Setup-Windows-ARM.exe
+          cp "$(find dist -name 'DoinkBinds-osx-arm64.dmg')"       out/DoinkBinds-Mac-AppleSilicon.dmg
+          cp "$(find dist -name 'DoinkBinds-osx-x64.dmg')"         out/DoinkBinds-Mac-Intel.dmg
+          ls -la out
+      - name: Publish release
+        run: |
+          cat > notes.md <<'EOF'
+          ## Download
+
+          | Your computer | File |
+          |---|---|
+          | Windows PC (most) | **DoinkBinds-Setup-Windows.exe** |
+          | Windows on ARM (Surface Pro X, Snapdragon laptops) | DoinkBinds-Setup-Windows-ARM.exe |
+          | Mac with Apple chip (M1/M2/M3/M4) | **DoinkBinds-Mac-AppleSilicon.dmg** |
+          | Older Intel Mac | DoinkBinds-Mac-Intel.dmg |
+
+          **Windows:** run the Setup file. If a blue "Windows protected your PC" box appears, click **More info -> Run anyway** (the app isn't code-signed).
+
+          **Mac:** open the .dmg and drag **Doink Binds** onto **Applications**. The first time, right-click the app -> **Open** -> **Open**. Then allow it under System Settings -> Privacy & Security: **Accessibility**, **Input Monitoring** and **Screen Recording**.
+          EOF
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            TAG="${GITHUB_REF_NAME}"
+            gh release create "$TAG" out/* --repo "$REPO" --title "Doink Binds $TAG" --notes-file notes.md
+          else
+            TAG=latest
+            gh release delete "$TAG" --repo "$REPO" --yes --cleanup-tag || true
+            gh api -X DELETE "repos/$REPO/git/refs/tags/$TAG" 2>/dev/null || true
+            gh release create "$TAG" out/* --repo "$REPO" --target "$GITHUB_SHA" --prerelease \
+              --title "Doink Binds (latest build)" --notes-file notes.md
+          fi

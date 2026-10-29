@@ -5,7 +5,9 @@
   #define Rid "win-x64"
 #endif
 #define AppName "Doink Binds"
-#define AppVersion "1.0.0"
+#ifndef AppVersion
+  #define AppVersion "1.1.0"
+#endif
 #define AppExe "DoinkBinds.exe"
 #define SourceDir "..\..\publish\" + Rid
 
@@ -14,6 +16,8 @@ AppId={{7B0E3C55-4D1A-4C8E-9C1E-D01AB1D5D0C1}
 AppName={#AppName}
 AppVersion={#AppVersion}
 AppPublisher=Doink
+AppVerName={#AppName} {#AppVersion}
+VersionInfoVersion={#AppVersion}
 DefaultDirName={autopf}\Doink Binds
 DefaultGroupName=Doink Binds
 UninstallDisplayIcon={app}\{#AppExe}
@@ -26,6 +30,9 @@ WizardStyle=modern
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
 ChangesAssociations=yes
+; Close a running copy (it may be in the tray) before upgrading or uninstalling.
+CloseApplications=force
+DisableProgramGroupPage=yes
 #if Rid == "win-arm64"
 ArchitecturesAllowed=arm64
 ArchitecturesInstallIn64BitMode=arm64
@@ -52,6 +59,9 @@ Root: HKA; Subkey: "Software\Classes\.doink"; ValueType: string; ValueName: ""; 
 Root: HKA; Subkey: "Software\Classes\DoinkBinds.Macro"; ValueType: string; ValueName: ""; ValueData: "Doink Binds Macro"; Flags: uninsdeletekey; Tasks: associate
 Root: HKA; Subkey: "Software\Classes\DoinkBinds.Macro\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\{#AppExe},0"; Tasks: associate
 Root: HKA; Subkey: "Software\Classes\DoinkBinds.Macro\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#AppExe}"" ""%1"""; Tasks: associate
+
+; Remove the "start with Windows" entry the app may have added (Settings -> Start with system).
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: none; ValueName: "DoinkBinds"; Flags: uninsdeletevalue dontcreatekey
 
 [Run]
 Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent

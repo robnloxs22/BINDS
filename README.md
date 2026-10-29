@@ -183,8 +183,11 @@ codesign --force --deep --options runtime --sign "Developer ID Application: <you
 xcrun notarytool submit publish/DoinkBinds-osx-arm64.dmg --keychain-profile <profile> --wait
 ```
 
-### CI
-`.github/workflows/build.yml` runs the tests and then builds the Windows exe and installer and the macOS DMGs (Intel and Apple Silicon) on every push. Download them from the workflow run's **Artifacts**.
+### CI and downloads
+`.github/workflows/build.yml` runs the tests and then builds the Windows installers and the macOS DMGs (Intel and Apple Silicon) on every push. It then publishes them on the repository's **Releases** page: branch pushes update the **"latest"** pre-release, and pushing a `v*` tag (e.g. `v1.1.0`) creates a normal versioned release.
+
+- **Windows:** `DoinkBinds-Setup-Windows.exe` is a normal setup wizard. It installs per user without admin rights, adds Start-menu and desktop shortcuts, associates `.doink` files, and has an uninstaller in *Settings → Apps*. The app isn't code-signed, so SmartScreen may show "Windows protected your PC". Click **More info → Run anyway**.
+- **macOS:** open the `.dmg` and drag **Doink Binds** onto the **Applications** shortcut. The first time, right-click the app and choose **Open**, because the app is only ad-hoc signed.
 
 ---
 

@@ -39,8 +39,13 @@ if [[ "$(uname)" == "Darwin" ]]; then
     rm -f "$DMG"
     # hdiutil's automatic size estimate is too small for large bundles ("No space left on device"),
     # so give it an explicit size with headroom.
+    # The DMG shows the app next to an "Applications" shortcut: drag one onto the other to install.
+    STAGE="$(mktemp -d)"
+    cp -R "$APP" "$STAGE/"
+    ln -s /Applications "$STAGE/Applications"
     SIZE_MB=$(( $(du -sm "$APP" | cut -f1) * 13 / 10 + 50 ))
-    hdiutil create -volname "Doink Binds" -srcfolder "$APP" -fs HFS+ -size "${SIZE_MB}m" -ov -format UDZO "$DMG" >/dev/null
+    hdiutil create -volname "Doink Binds" -srcfolder "$STAGE" -fs HFS+ -size "${SIZE_MB}m" -ov -format UDZO "$DMG" >/dev/null
+    rm -rf "$STAGE"
     echo "OK: $DMG"
 else
     echo "Note: Not on macOS: skipping codesign + DMG (copy the .app to a Mac and run 'codesign --force --deep --sign - \"Doink Binds.app\"')."
