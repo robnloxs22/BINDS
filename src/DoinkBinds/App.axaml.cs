@@ -17,6 +17,64 @@ public partial class App : Application
     /// <summary>The DI container. Exposed for diagnostics; prefer constructor injection.</summary>
     public static IServiceProvider Services { get; private set; } = null!;
 
+    /// <summary>True when a tray icon could be created (always on Windows/macOS).</summary>
+    public static bool HasTray { get; private set; }
+
+    public static void Notify(string title, string message) =>
+        Services.GetService<INotificationService>()?.Notify(title, message);
+
+    /// <summary>Tray / menu-bar icon: show the window, toggle macros/rules, stop, quit.</summary>
+    private void CreateTrayIcon(IClassicDesktopStyleApplicationLifetime desktop, MainWindow window, MainWindowViewModel vm)
+    {
+        try
+        {
+            void ShowWindow()
+            {
+                window.Show();
+                if (window.WindowState == Avalonia.Controls.WindowState.Minimized) window.WindowState = Avalonia.Controls.WindowState.Normal;
+                window.Activate();
+            }
+
+            var show = new Avalonia.Controls.NativeMenuItem("Open Doink Binds");
+            show.Click += (_, _) => ShowWindow();
+            var macros = new Avalonia.Controls.NativeMenuItem("Macro hotkeys on/off") { Command = vm.ToggleMacrosFromTrayCommand };
+            var rules = new Avalonia.Controls.NativeMenuItem("Watch screen (rules) on/off") { Command = vm.ToggleRulesFromTrayCommand };
+            var stop = new Avalonia.Controls.NativeMenuItem("Stop playback") { Command = vm.StopFromTrayCommand };
+            var quit = new Avalonia.Controls.NativeMenuItem("Quit");
+            quit.Click += (_, _) =>
+            {
+                window.ReallyClose = true;
+                desktop.Shutdown();
+            };
+
+            var menu = new Avalonia.Controls.NativeMenu();
+            menu.Items.Add(show);
+            menu.Items.Add(new Avalonia.Controls.NativeMenuItemSeparator());
+            menu.Items.Add(macros);
+            menu.Items.Add(rules);
+            menu.Items.Add(stop);
+            menu.Items.Add(new Avalonia.Controls.NativeMenuItemSeparator());
+            menu.Items.Add(quit);
+
+            using var iconStream = Avalonia.Platform.AssetLoader.Open(new Uri("avares://DoinkBinds/Assets/doink-256.png"));
+            var tray = new Avalonia.Controls.TrayIcon
+            {
+                Icon = new Avalonia.Controls.WindowIcon(iconStream),
+                ToolTipText = "Doink Binds",
+                Menu = menu,
+                IsVisible = true
+            };
+            tray.Clicked += (_, _) => ShowWindow();
+            Avalonia.Controls.TrayIcon.SetIcons(this, new Avalonia.Controls.TrayIcons { tray });
+            HasTray = OperatingSystem.IsWindows() || OperatingSystem.IsMacOS();
+        }
+        catch (Exception ex)
+        {
+            Services.GetService<ILogService>()?.Error("Tray icon unavailable", ex);
+            HasTray = false;
+        }
+    }
+
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -52,10 +110,14 @@ public partial class App : Application
         services.AddSingleton<IRuleEngine, RuleEngine>();
 
         // UI-layer services
-        services.AddSingleton<IPinPointPicker, PinPointPicker>();
+        services.AddSingleton<PinPointPicker>();
+        services.AddSingleton<IPinPointPicker>(sp => sp.GetRequiredService<PinPointPicker>());
+        services.AddSingleton<IScreenPicker>(sp => sp.GetRequiredService<PinPointPicker>());
         services.AddSingleton<IDialogService, DialogService>();
         services.AddSingleton<IShellService, ShellService>();
         services.AddSingleton<INotificationService, NotificationService>();
+        services.AddSingleton<IClipboardService, ClipboardService>();
+        services.AddSingleton<IStartupService, StartupService>();
 
         // View models
         services.AddSingleton<MainWindowViewModel>();
@@ -84,7 +146,13 @@ public partial class App : Application
             desktop.MainWindow = window;
             desktop.ShutdownMode = Avalonia.Controls.ShutdownMode.OnMainWindowClose;
 
-            window.Opened += (_, _) => vm.Initialize();
+            var startHidden = desktop.Args?.Contains("--minimized") == true || vm.StartMinimized;
+            window.Opened += (_, _) =>
+            {
+                vm.Initialize();
+                if (startHidden && HasTray) window.Hide();
+            };
+            CreateTrayIcon(desktop, window, vm);
             desktop.ShutdownRequested += (_, _) => vm.Dispose();
             desktop.Exit += (_, _) =>
             {

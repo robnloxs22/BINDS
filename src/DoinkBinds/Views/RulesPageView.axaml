@@ -1,0 +1,118 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:DoinkBinds.ViewModels"
+             xmlns:views="using:DoinkBinds.Views"
+             xmlns:conv="using:DoinkBinds.Converters"
+             x:Class="DoinkBinds.Views.RulesPageView"
+             x:DataType="vm:RulesPageViewModel">
+    <UserControl.Resources>
+        <conv:EnumDisplayConverter x:Key="EnumText" />
+    </UserControl.Resources>
+
+    <Panel Margin="24,18,24,20">
+        <!-- Empty state -->
+        <StackPanel IsVisible="{Binding !HasSelection}" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="12" MaxWidth="480">
+            <PathIcon Data="{StaticResource Icon.Lightning}" Width="40" Height="40" Foreground="{StaticResource Doink.Yellow}" />
+            <TextBlock Classes="h1" TextAlignment="Center" Text="When this happens, do that" />
+            <TextBlock Classes="secondary" TextAlignment="Center" TextWrapping="Wrap"
+                       Text="Rules watch the screen in the background. When an image, some text, a colour or a window appears, they run steps — click it, type, notify you, run a macro, arrange windows…" />
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8" Margin="0,8,0,0">
+                <Button Classes="primary" Command="{Binding NewRuleCommand}" CommandParameter="image">
+                    <TextBlock Text="Click an image when it appears" Foreground="White" />
+                </Button>
+                <Button Command="{Binding NewRuleCommand}" CommandParameter="text" Content="Alert on text" />
+                <Button Command="{Binding NewRuleCommand}" CommandParameter="blank" Content="Blank rule" />
+            </StackPanel>
+        </StackPanel>
+
+        <!-- Selected rule -->
+        <Panel IsVisible="{Binding HasSelection}">
+        <Grid RowDefinitions="Auto,Auto,Auto,*" DataContext="{Binding SelectedRule}" x:DataType="vm:RuleViewModel">
+            <!-- Header -->
+            <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,12">
+                <StackPanel Spacing="2">
+                    <TextBox Classes="title" Text="{Binding Name}" Margin="-6,0,0,0" HorizontalAlignment="Left" MinWidth="240" />
+                    <TextBlock Classes="caption" Text="{Binding StatusText}" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Top">
+                    <ToggleSwitch IsChecked="{Binding Enabled}" OnContent="On" OffContent="Off" ToolTip.Tip="Enable / disable this rule" />
+                    <Button Command="{Binding TestCommand}" ToolTip.Tip="Check the condition right now">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <PathIcon Data="{StaticResource Icon.Check}" Width="13" Height="13" />
+                            <TextBlock Text="Test" />
+                        </StackPanel>
+                    </Button>
+                    <Button Classes="success" Command="{Binding RunNowCommand}" ToolTip.Tip="Run the THEN steps now">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <PathIcon Data="{StaticResource Icon.Play}" Width="13" Height="13" />
+                            <TextBlock Text="Run now" Foreground="White" />
+                        </StackPanel>
+                    </Button>
+                    <Button Classes="ghost icon" ToolTip.Tip="Duplicate" Command="{Binding DuplicateCommand}">
+                        <PathIcon Data="{StaticResource Icon.Copy}" />
+                    </Button>
+                    <Button Classes="ghost icon" ToolTip.Tip="Delete rule" Command="{Binding DeleteCommand}">
+                        <PathIcon Data="{StaticResource Icon.Delete}" />
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <!-- IF -->
+            <Border Grid.Row="1" Classes="card" Margin="0,0,0,12" Padding="14">
+                <Grid ColumnDefinitions="Auto,*">
+                    <Border Background="{StaticResource Doink.Yellow.Soft}" CornerRadius="8" Padding="10,6" VerticalAlignment="Top" Margin="0,0,12,0">
+                        <TextBlock Text="IF" FontWeight="Black" Foreground="{StaticResource Doink.Yellow}" />
+                    </Border>
+                    <StackPanel Grid.Column="1" Spacing="6">
+                        <ScrollViewer MaxHeight="280">
+                            <views:ConditionEditorView DataContext="{Binding Condition}" Margin="0,0,10,0" />
+                        </ScrollViewer>
+                        <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding !Condition.IsGroup}">
+                            <Button Classes="ghost" Padding="8,4" FontSize="12" Content="+ AND another condition"
+                                    Command="{Binding Condition.WrapInGroupCommand}" CommandParameter="All" />
+                            <Button Classes="ghost" Padding="8,4" FontSize="12" Content="+ OR another condition"
+                                    Command="{Binding Condition.WrapInGroupCommand}" CommandParameter="Any" />
+                        </StackPanel>
+                        <TextBlock Text="{Binding TestResult}" FontSize="12" TextWrapping="Wrap" Classes="secondary"
+                                   IsVisible="{Binding TestResult, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Options -->
+            <WrapPanel Grid.Row="2" Margin="0,0,0,12" Orientation="Horizontal">
+                <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,18,6">
+                    <TextBlock Classes="section" Text="FIRE" VerticalAlignment="Center" />
+                    <ComboBox ItemsSource="{x:Static vm:Options.TriggerModes}" SelectedItem="{Binding Trigger}" MinWidth="230">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate><TextBlock Text="{ReflectionBinding Converter={StaticResource EnumText}}" /></DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,18,6">
+                    <TextBlock Classes="section" Text="CHECK EVERY (MS)" VerticalAlignment="Center" />
+                    <NumericUpDown Classes="compact" Value="{Binding IntervalMs}" Minimum="50" Maximum="3600000" Increment="50" FormatString="0" Width="80" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,18,6">
+                    <TextBlock Classes="section" Text="COOLDOWN (S)" VerticalAlignment="Center" />
+                    <NumericUpDown Classes="compact" Value="{Binding CooldownSeconds}" Minimum="0" Maximum="86400" Increment="0.5" FormatString="0.#" Width="80" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,18,6">
+                    <TextBlock Classes="section" Text="STOP AFTER (0 = NEVER)" VerticalAlignment="Center" />
+                    <NumericUpDown Classes="compact" Value="{Binding MaxFires}" Minimum="0" Maximum="1000000" Increment="1" FormatString="0" Width="80" />
+                </StackPanel>
+                <CheckBox Content="Skip while a macro is playing" IsChecked="{Binding SkipWhileBusy}" Margin="0,0,0,6"
+                          ToolTip.Tip="Off = wait until the current macro finishes, then fire" />
+            </WrapPanel>
+
+            <!-- THEN -->
+            <Grid Grid.Row="3" ColumnDefinitions="Auto,*">
+                <Border Background="{StaticResource Doink.Green.Soft}" CornerRadius="8" Padding="10,6" VerticalAlignment="Top" Margin="0,0,12,0">
+                    <TextBlock Text="THEN" FontWeight="Black" Foreground="{StaticResource Doink.Green}" />
+                </Border>
+                <views:MacroEditorView Grid.Column="1" DataContext="{Binding Actions}" />
+            </Grid>
+        </Grid>
+        </Panel>
+    </Panel>
+</UserControl>

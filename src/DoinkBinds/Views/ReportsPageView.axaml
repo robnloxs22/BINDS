@@ -1,0 +1,89 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:DoinkBinds.ViewModels"
+             x:Class="DoinkBinds.Views.ReportsPageView"
+             x:DataType="vm:ReportsPageViewModel">
+    <UserControl.Styles>
+        <Style Selector="Border.result">
+            <Setter Property="CornerRadius" Value="999" />
+            <Setter Property="Padding" Value="10,3" />
+            <Setter Property="Background" Value="{StaticResource Doink.Yellow.Soft}" />
+        </Style>
+        <Style Selector="Border.result.passed">
+            <Setter Property="Background" Value="{StaticResource Doink.Green.Soft}" />
+        </Style>
+        <Style Selector="Border.result.failed">
+            <Setter Property="Background" Value="{StaticResource Doink.Red.Soft}" />
+        </Style>
+    </UserControl.Styles>
+
+    <Panel Margin="24,18,24,20">
+        <StackPanel IsVisible="{Binding !HasSelection}" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="12" MaxWidth="460">
+            <PathIcon Data="{StaticResource Icon.Check}" Width="40" Height="40" Foreground="{StaticResource Doink.Green}" />
+            <TextBlock Classes="h1" TextAlignment="Center" Text="Test reports" />
+            <TextBlock Classes="secondary" TextAlignment="Center" TextWrapping="Wrap"
+                       Text="Add “Check” steps to a macro (Add step → Testing). Every run then writes a report here with PASS / FAIL for each check and a screenshot of every failure." />
+        </StackPanel>
+
+        <Panel IsVisible="{Binding HasSelection}">
+        <Grid RowDefinitions="Auto,*" DataContext="{Binding Selected}" x:DataType="vm:ReportItemViewModel">
+            <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,12">
+                <StackPanel Spacing="4">
+                    <TextBlock Classes="h1" Text="{Binding MacroName}" />
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Border Classes="result" Classes.passed="{Binding Passed}" Classes.failed="{Binding Failed}">
+                            <TextBlock Text="{Binding Result}" FontWeight="Bold" FontSize="12" />
+                        </Border>
+                        <TextBlock Classes="caption" Text="{Binding When}" VerticalAlignment="Center" />
+                        <TextBlock Classes="caption" Text="{Binding Duration}" VerticalAlignment="Center" />
+                        <TextBlock Classes="caption" Text="{Binding Counts}" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <TextBlock Text="{Binding Report.Error}" Foreground="{StaticResource Doink.Red}" TextWrapping="Wrap"
+                               IsVisible="{Binding Report.Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Top">
+                    <Button Classes="primary" Command="{Binding $parent[UserControl].((vm:ReportsPageViewModel)DataContext).OpenHtmlCommand}">
+                        <TextBlock Text="Open HTML report" Foreground="White" />
+                    </Button>
+                    <Button Content="Open folder" Command="{Binding $parent[UserControl].((vm:ReportsPageViewModel)DataContext).OpenFolderCommand}" />
+                    <Button Classes="ghost icon" ToolTip.Tip="Delete report" Command="{Binding $parent[UserControl].((vm:ReportsPageViewModel)DataContext).DeleteCommand}">
+                        <PathIcon Data="{StaticResource Icon.Delete}" />
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <ScrollViewer Grid.Row="1">
+                <StackPanel Margin="0,0,10,0" Spacing="8">
+                    <TextBlock Classes="secondary" Text="This run didn't record any checks." IsVisible="{Binding !HasEntries}" />
+                    <ItemsControl ItemsSource="{Binding Entries}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><StackPanel Spacing="8" /></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ReportEntryViewModel">
+                                <Border Classes="card" Padding="12">
+                                    <Grid ColumnDefinitions="Auto,*">
+                                        <Panel Width="26" VerticalAlignment="Top" Margin="0,2,10,0">
+                                            <PathIcon Data="{StaticResource Icon.Check}" Width="16" Height="16" Foreground="{StaticResource Doink.Green}" IsVisible="{Binding Passed}" />
+                                            <PathIcon Data="{StaticResource Icon.Close}" Width="14" Height="14" Foreground="{StaticResource Doink.Red}" IsVisible="{Binding !Passed}" />
+                                        </Panel>
+                                        <StackPanel Grid.Column="1" Spacing="2">
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <TextBlock Text="{Binding Description}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                                <TextBlock Classes="caption" Text="{Binding Step}" VerticalAlignment="Center" />
+                                                <TextBlock Classes="caption" Text="{Binding Time}" VerticalAlignment="Center" />
+                                            </StackPanel>
+                                            <TextBlock Classes="secondary" Text="{Binding Message}" TextWrapping="Wrap" FontSize="12" IsVisible="{Binding HasMessage}" />
+                                            <Image Source="{Binding Screenshot}" MaxWidth="480" HorizontalAlignment="Left" Margin="0,6,0,0" IsVisible="{Binding HasScreenshot}" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+        </Panel>
+    </Panel>
+</UserControl>

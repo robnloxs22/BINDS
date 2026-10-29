@@ -17,7 +17,7 @@
             BorderBrush="#5865F2" BorderThickness="1" BoxShadow="0 6 20 0 #80000000" Cursor="Hand">
         <Grid ColumnDefinitions="Auto,*">
             <Border Width="30" Height="30" CornerRadius="8" Background="#335865F2" VerticalAlignment="Top">
-                <PathIcon x:Name="Icon" Data="{StaticResource Icon.Lightning}" Width="15" Height="15" Foreground="#949CF7" />
+                <PathIcon x:Name="KindIcon" Data="{StaticResource Icon.Lightning}" Width="15" Height="15" Foreground="#949CF7" />
             </Border>
             <StackPanel Grid.Column="1" Margin="12,0,0,0" Spacing="2">
                 <TextBlock x:Name="TitleText" Foreground="#B5BAC1" FontSize="11" FontWeight="Bold" TextTrimming="CharacterEllipsis" />

@@ -1,0 +1,268 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:DoinkBinds.ViewModels"
+             xmlns:views="using:DoinkBinds.Views"
+             xmlns:conv="using:DoinkBinds.Converters"
+             x:Class="DoinkBinds.Views.StepEditorView"
+             x:DataType="vm:ActionViewModel">
+    <UserControl.Resources>
+        <conv:EnumDisplayConverter x:Key="EnumText" />
+    </UserControl.Resources>
+    <UserControl.Styles>
+        <Style Selector="TextBlock.section">
+            <Setter Property="Margin" Value="0,8,0,0" />
+        </Style>
+    </UserControl.Styles>
+
+    <StackPanel Spacing="6">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock Classes="h2" Text="Step" />
+            <TextBlock Classes="h2" Text="{Binding Number}" />
+        </StackPanel>
+
+        <TextBlock Classes="section" Text="TYPE" />
+        <ComboBox ItemsSource="{x:Static vm:Options.ActionTypes}" SelectedItem="{Binding Type}" HorizontalAlignment="Stretch" MaxDropDownHeight="420">
+            <ComboBox.ItemTemplate>
+                <DataTemplate><TextBlock Text="{ReflectionBinding Converter={StaticResource EnumText}}" /></DataTemplate>
+            </ComboBox.ItemTemplate>
+        </ComboBox>
+
+        <TextBlock Classes="section" Text="LABEL (OPTIONAL)" />
+        <TextBox Text="{Binding Label}" Watermark="e.g. Click the Login button" />
+
+        <!-- ===== Timing ===== -->
+        <StackPanel IsVisible="{Binding HasDelay}" Spacing="6">
+            <TextBlock Classes="section" Text="WAIT BEFORE THIS STEP (MS)" IsVisible="{Binding !IsRandomWait}" />
+            <TextBlock Classes="section" Text="RANDOM WAIT BETWEEN (MS)" IsVisible="{Binding IsRandomWait}" />
+            <Grid ColumnDefinitions="*,8,*">
+                <NumericUpDown Value="{Binding DelayMs}" Minimum="0" Maximum="86400000" Increment="50" FormatString="0" />
+                <NumericUpDown Grid.Column="2" Value="{Binding MaxDelayMs}" Minimum="0" Maximum="86400000" Increment="50" FormatString="0"
+                               IsVisible="{Binding IsRandomWait}" />
+            </Grid>
+        </StackPanel>
+
+        <!-- ===== Text-based steps ===== -->
+        <StackPanel Spacing="6" IsVisible="{Binding UsesText}">
+            <TextBlock Classes="section" Text="{Binding TextLabel}" />
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBox Text="{Binding Text}" Watermark="{Binding TextHint}" AcceptsReturn="{Binding IsTypeText}" TextWrapping="Wrap" MinHeight="34" />
+                <Button Grid.Column="1" Classes="ghost icon" Margin="4,0,0,0" ToolTip.Tip="Browse…" Command="{Binding BrowseAppCommand}"
+                        IsVisible="{Binding IsOpenApp}">
+                    <PathIcon Data="{StaticResource Icon.FolderOpen}" />
+                </Button>
+            </Grid>
+            <StackPanel IsVisible="{Binding IsTypeText}" Spacing="4">
+                <TextBlock Classes="caption" Text="DELAY BETWEEN CHARACTERS (MS)" />
+                <NumericUpDown Value="{Binding CharDelayMs}" Minimum="0" Maximum="5000" Increment="5" FormatString="0" />
+            </StackPanel>
+            <StackPanel IsVisible="{Binding IsOpenApp}" Spacing="4">
+                <TextBlock Classes="caption" Text="ARGUMENTS (OPTIONAL)" />
+                <TextBox Text="{Binding Arguments}" />
+            </StackPanel>
+            <CheckBox Content="Play a sound" IsChecked="{Binding Flag}" IsVisible="{Binding IsNotify}" />
+            <CheckBox Content="Count as a failure (red in reports)" IsChecked="{Binding Flag}" IsVisible="{Binding IsStop}" />
+        </StackPanel>
+
+        <!-- ===== Variables ===== -->
+        <StackPanel Spacing="6" IsVisible="{Binding IsSetVariable}">
+            <TextBlock Classes="section" Text="VARIABLE" />
+            <Grid ColumnDefinitions="*,8,Auto">
+                <TextBox Text="{Binding VariableName}" Watermark="name, e.g. counter" />
+                <ComboBox Grid.Column="2" ItemsSource="{x:Static vm:Options.VariableOps}" SelectedItem="{Binding VariableOp}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate><TextBlock Text="{ReflectionBinding Converter={StaticResource EnumText}}" /></DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </Grid>
+            <TextBlock Classes="caption" TextWrapping="Wrap" Text="Use it anywhere as {name}. Add/Subtract work with numbers." />
+        </StackPanel>
+
+        <!-- ===== Read text ===== -->
+        <StackPanel Spacing="6" IsVisible="{Binding IsReadText}">
+            <TextBlock Classes="section" Text="SAVE THE TEXT INTO VARIABLE" />
+            <TextBox Text="{Binding VariableName}" Watermark="e.g. score" />
+        </StackPanel>
+
+        <!-- ===== Loop ===== -->
+        <StackPanel Spacing="6" IsVisible="{Binding IsLoop}">
+            <TextBlock Classes="section" Text="REPEAT" />
+            <ComboBox ItemsSource="{x:Static vm:Options.LoopKinds}" SelectedItem="{Binding LoopKind}" HorizontalAlignment="Stretch">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate><TextBlock Text="{ReflectionBinding Converter={StaticResource EnumText}}" /></DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+            <NumericUpDown Value="{Binding Count}" Minimum="0" Maximum="10000000" Increment="1" FormatString="0" IsVisible="{Binding IsLoopCount}" />
+            <TextBlock Classes="caption" TextWrapping="Wrap" Text="Steps between this and its End Loop repeat. {loop} is the current round." />
+        </StackPanel>
+
+        <!-- ===== Condition ===== -->
+        <StackPanel Spacing="6" IsVisible="{Binding UsesCondition}">
+            <TextBlock Classes="section" Text="CONDITION" />
+            <ContentControl Content="{Binding Condition}">
+                <ContentControl.ContentTemplate>
+                    <DataTemplate x:DataType="vm:ConditionViewModel">
+                        <StackPanel Spacing="6">
+                            <views:ConditionEditorView />
+                            <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding !IsGroup}">
+                                <Button Classes="ghost" Padding="8,4" FontSize="12" Content="+ AND another"
+                                        Command="{Binding WrapInGroupCommand}" CommandParameter="All" />
+                                <Button Classes="ghost" Padding="8,4" FontSize="12" Content="+ OR another"
+                                        Command="{Binding WrapInGroupCommand}" CommandParameter="Any" />
+                            </StackPanel>
+                        </StackPanel>
+                    </DataTemplate>
+                </ContentControl.ContentTemplate>
+            </ContentControl>
+        </StackPanel>
+
+        <!-- ===== Timeout / failure ===== -->
+        <StackPanel Spacing="6" IsVisible="{Binding UsesTimeout}">
+            <TextBlock Classes="section" Text="GIVE UP AFTER (SECONDS, 0 = NEVER)" />
+            <NumericUpDown Value="{Binding TimeoutSeconds}" Minimum="0" Maximum="86400" Increment="1" FormatString="0.#" />
+        </StackPanel>
+        <StackPanel Spacing="6" IsVisible="{Binding UsesOnFail}">
+            <TextBlock Classes="section" Text="IF IT FAILS" />
+            <ComboBox ItemsSource="{x:Static vm:Options.FailActions}" SelectedItem="{Binding OnFail}" HorizontalAlignment="Stretch">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate><TextBlock Text="{ReflectionBinding Converter={StaticResource EnumText}}" /></DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+        </StackPanel>
+
+        <!-- ===== Run macro ===== -->
+        <StackPanel Spacing="6" IsVisible="{Binding IsRunMacro}">
+            <TextBlock Classes="section" Text="MACRO TO RUN" />
+            <ComboBox ItemsSource="{Binding Macros}" SelectedItem="{Binding SelectedMacro}" HorizontalAlignment="Stretch" MaxDropDownHeight="360" />
+            <TextBlock Classes="caption" TextWrapping="Wrap" Text="Runs it here, then continues. Variables are shared." />
+        </StackPanel>
+
+        <!-- ===== Window action ===== -->
+        <StackPanel Spacing="6" IsVisible="{Binding IsWindowAction}">
+            <TextBlock Classes="section" Text="ACTION" />
+            <ComboBox ItemsSource="{x:Static vm:Options.WindowOps}" SelectedItem="{Binding WindowOp}" HorizontalAlignment="Stretch">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate><TextBlock Text="{ReflectionBinding Converter={StaticResource EnumText}}" /></DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+            <StackPanel IsVisible="{Binding IsApplyLayout}" Spacing="4">
+                <TextBlock Classes="caption" Text="LAYOUT (CREATE THEM IN THE LAYOUTS TAB)" />
+                <ComboBox ItemsSource="{Binding Layouts}" SelectedItem="{Binding SelectedLayout}" HorizontalAlignment="Stretch" />
+            </StackPanel>
+        </StackPanel>
+
+        <!-- ===== Target window ===== -->
+        <StackPanel Spacing="4" IsVisible="{Binding UsesWindowTarget}">
+            <TextBlock Classes="section" Text="WINDOW (APP NAME + TITLE CONTAINS)" />
+            <Grid ColumnDefinitions="*,6,*,Auto">
+                <TextBox Text="{Binding WindowProcess}" Watermark="app, e.g. chrome" />
+                <TextBox Grid.Column="2" Text="{Binding WindowTitle}" Watermark="title contains" />
+                <Button Grid.Column="3" Classes="ghost icon" Margin="4,0,0,0" ToolTip.Tip="Pick from open windows" Command="{Binding PickWindowCommand}">
+                    <PathIcon Data="{StaticResource Icon.Window}" />
+                </Button>
+            </Grid>
+            <TextBlock Classes="caption" TextWrapping="Wrap" IsVisible="{Binding IsOpenApp}"
+                       Text="Optional: set a window + timeout to wait until the app has opened." />
+        </StackPanel>
+
+        <!-- ===== Region (read text / screenshot / move-resize) ===== -->
+        <StackPanel Spacing="6" IsVisible="{Binding UsesRegion}">
+            <TextBlock Classes="section" Text="AREA" />
+            <Grid ColumnDefinitions="*,Auto,Auto">
+                <TextBlock Classes="secondary" Text="{Binding RegionText}" VerticalAlignment="Center" FontSize="12" TextTrimming="CharacterEllipsis" />
+                <Button Grid.Column="1" Classes="ghost" Padding="8,4" FontSize="12" Content="Pick" Command="{Binding PickRegionCommand}" />
+                <Button Grid.Column="2" Classes="ghost" Padding="8,4" FontSize="12" Content="Clear" Command="{Binding ClearRegionCommand}"
+                        IsVisible="{Binding !IsMoveResize}" />
+            </Grid>
+            <Grid ColumnDefinitions="*,6,*,6,*,6,*" IsVisible="{Binding IsMoveResize}">
+                <NumericUpDown Value="{Binding RegionX}" Minimum="-100000" Maximum="100000" FormatString="0" ToolTip.Tip="X" ShowButtonSpinner="False" />
+                <NumericUpDown Grid.Column="2" Value="{Binding RegionY}" Minimum="-100000" Maximum="100000" FormatString="0" ToolTip.Tip="Y" ShowButtonSpinner="False" />
+                <NumericUpDown Grid.Column="4" Value="{Binding RegionWidth}" Minimum="0" Maximum="100000" FormatString="0" ToolTip.Tip="Width" ShowButtonSpinner="False" />
+                <NumericUpDown Grid.Column="6" Value="{Binding RegionHeight}" Minimum="0" Maximum="100000" FormatString="0" ToolTip.Tip="Height" ShowButtonSpinner="False" />
+            </Grid>
+            <Button Classes="ghost" Padding="8,4" FontSize="12" Content="Use the window's current position" IsVisible="{Binding IsMoveResize}"
+                    Command="{Binding UseWindowCurrentBoundsCommand}" />
+            <StackPanel IsVisible="{Binding IsReadText}" Spacing="4">
+                <Button Padding="8,5" FontSize="12" Content="Test: read it now" Command="{Binding TestReadTextCommand}" />
+                <TextBlock Classes="secondary" FontSize="12" TextWrapping="Wrap" Text="{Binding ReadPreview}" />
+            </StackPanel>
+        </StackPanel>
+
+        <!-- ===== Mouse ===== -->
+        <StackPanel Spacing="6" IsVisible="{Binding IsMouse}">
+            <StackPanel Spacing="6" IsVisible="{Binding UsesButton}">
+                <TextBlock Classes="section" Text="BUTTON" />
+                <Grid ColumnDefinitions="*,8,90">
+                    <ComboBox ItemsSource="{x:Static vm:Options.MouseButtons}" SelectedItem="{Binding Button}" HorizontalAlignment="Stretch">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate><TextBlock Text="{ReflectionBinding Converter={StaticResource EnumText}}" /></DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <NumericUpDown Grid.Column="2" Value="{Binding ClickCount}" Minimum="1" Maximum="10" FormatString="0" ToolTip.Tip="Clicks (2 = double-click)"
+                                   IsVisible="{Binding UsesClickCount}" />
+                </Grid>
+            </StackPanel>
+
+            <StackPanel Spacing="8" IsVisible="{Binding IsWheel}">
+                <TextBlock Classes="section" Text="SCROLL (NOTCHES, + = UP/RIGHT)" />
+                <NumericUpDown Value="{Binding WheelNotches}" Minimum="-100" Maximum="100" Increment="1" FormatString="0.##" />
+                <CheckBox Content="Horizontal scroll" IsChecked="{Binding Horizontal}" />
+            </StackPanel>
+
+            <CheckBox Content="Act where the cursor already is" IsChecked="{Binding UseCurrentCursor}" IsVisible="{Binding CanUseCurrentCursor}" />
+
+            <StackPanel Spacing="8" IsVisible="{Binding HasPosition}">
+                <TextBlock Classes="section" Text="POSITION MODE" />
+                <ComboBox ItemsSource="{x:Static vm:Options.MouseModes}" SelectedItem="{Binding PositionMode}" HorizontalAlignment="Stretch">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate><TextBlock Text="{ReflectionBinding Converter={StaticResource EnumText}}" /></DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+                <Grid ColumnDefinitions="*,10,*">
+                    <StackPanel Spacing="4">
+                        <TextBlock Classes="caption" Text="X" />
+                        <NumericUpDown Value="{Binding X}" Minimum="{Binding CoordinateMin}" Maximum="{Binding CoordinateMax}" Increment="1" FormatString="0.###" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Spacing="4">
+                        <TextBlock Classes="caption" Text="Y" />
+                        <NumericUpDown Value="{Binding Y}" Minimum="{Binding CoordinateMin}" Maximum="{Binding CoordinateMax}" Increment="1" FormatString="0.###" />
+                    </StackPanel>
+                </Grid>
+                <StackPanel Spacing="4" IsVisible="{Binding IsPercentage}">
+                    <TextBlock Classes="caption" Text="Monitor #" />
+                    <NumericUpDown Value="{Binding MonitorNumber}" Minimum="1" Maximum="16" Increment="1" FormatString="0" />
+                </StackPanel>
+                <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Classes="primary"
+                        Command="{Binding $parent[views:MacroEditorView].((vm:MacroViewModel)DataContext).PickStepPositionCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <PathIcon Data="{StaticResource Icon.Crosshair}" Width="15" Height="15" />
+                        <TextBlock Text="Pick position on screen" Foreground="White" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </StackPanel>
+
+        <!-- ===== Find & click offset ===== -->
+        <StackPanel Spacing="6" IsVisible="{Binding IsFindAndClick}">
+            <TextBlock Classes="section" Text="CLICK OFFSET FROM THE CENTRE (PX)" />
+            <Grid ColumnDefinitions="*,10,*">
+                <NumericUpDown Value="{Binding OffsetX}" Minimum="-5000" Maximum="5000" FormatString="0" />
+                <NumericUpDown Grid.Column="2" Value="{Binding OffsetY}" Minimum="-5000" Maximum="5000" FormatString="0" />
+            </Grid>
+        </StackPanel>
+
+        <!-- ===== Keyboard ===== -->
+        <StackPanel Spacing="8" IsVisible="{Binding IsKeyStep}">
+            <TextBlock Classes="section" Text="KEY" />
+            <ComboBox ItemsSource="{x:Static vm:Options.Keys}" SelectedItem="{Binding Key}" HorizontalAlignment="Stretch" MaxDropDownHeight="360" />
+        </StackPanel>
+
+        <!-- ===== Recorded window ===== -->
+        <StackPanel Spacing="4" IsVisible="{Binding IsMouse}">
+            <TextBlock Classes="section" Text="RECORDED IN" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <PathIcon Data="{StaticResource Icon.Window}" Width="14" Height="14" Foreground="{DynamicResource Doink.Text.Muted}" />
+                <TextBlock Classes="secondary" Text="{Binding WindowText}" TextWrapping="Wrap" MaxWidth="260" FontSize="12" />
+            </StackPanel>
+        </StackPanel>
+    </StackPanel>
+</UserControl>

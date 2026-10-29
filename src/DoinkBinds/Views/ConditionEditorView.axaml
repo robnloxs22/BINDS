@@ -1,0 +1,206 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:DoinkBinds.ViewModels"
+             xmlns:views="using:DoinkBinds.Views"
+             xmlns:conv="using:DoinkBinds.Converters"
+             x:Class="DoinkBinds.Views.ConditionEditorView"
+             x:DataType="vm:ConditionViewModel">
+    <UserControl.Resources>
+        <conv:EnumDisplayConverter x:Key="EnumText" />
+    </UserControl.Resources>
+    <UserControl.Styles>
+        <Style Selector="Border.cond">
+            <Setter Property="Background" Value="{DynamicResource Doink.Bg.Raised}" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="10" />
+            <Setter Property="BorderThickness" Value="3,0,0,0" />
+            <Setter Property="BorderBrush" Value="{StaticResource Doink.Accent}" />
+        </Style>
+        <Style Selector="Border.cond.group">
+            <Setter Property="BorderBrush" Value="{StaticResource Doink.Yellow}" />
+            <Setter Property="Background" Value="{DynamicResource Doink.Bg.Card}" />
+        </Style>
+        <Style Selector="ToggleButton.not">
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="CornerRadius" Value="6" />
+        </Style>
+        <Style Selector="ToggleButton.not:checked /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource Doink.Red}" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style Selector="TextBlock.lbl">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="{DynamicResource Doink.Text.Muted}" />
+            <Setter Property="Margin" Value="0,2,0,0" />
+        </Style>
+    </UserControl.Styles>
+
+    <Border Classes="cond" Classes.group="{Binding IsGroup}">
+        <StackPanel Spacing="6">
+            <!-- Header: NOT · type · test · remove -->
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                <ToggleButton Classes="not" Content="NOT" IsChecked="{Binding Negate}" ToolTip.Tip="Invert: true becomes false" />
+                <ComboBox Grid.Column="1" Margin="6,0" HorizontalAlignment="Stretch" ItemsSource="{x:Static vm:Options.ConditionTypes}"
+                          SelectedItem="{Binding Type}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate><TextBlock Text="{ReflectionBinding Converter={StaticResource EnumText}}" /></DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+                <Button Grid.Column="2" Classes="ghost icon" ToolTip.Tip="Test this condition now" Command="{Binding TestCommand}">
+                    <PathIcon Data="{StaticResource Icon.Check}" />
+                </Button>
+                <Button Grid.Column="3" Classes="ghost icon" ToolTip.Tip="Remove" Command="{Binding RemoveCommand}" IsVisible="{Binding HasParent}">
+                    <PathIcon Data="{StaticResource Icon.Close}" Width="11" Height="11" />
+                </Button>
+            </Grid>
+
+            <!-- ===== Group: children ===== -->
+            <StackPanel Spacing="6" IsVisible="{Binding IsGroup}">
+                <ItemsControl ItemsSource="{Binding Children}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate><StackPanel Spacing="6" /></ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ConditionViewModel">
+                            <views:ConditionEditorView />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Button Classes="ghost" HorizontalAlignment="Left" Padding="8,4">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <PathIcon Data="{StaticResource Icon.Plus}" Width="12" Height="12" />
+                        <TextBlock Text="Add condition" FontSize="12" />
+                    </StackPanel>
+                    <Button.Flyout>
+                        <MenuFlyout>
+                            <MenuItem Header="Image is on screen" Command="{Binding AddChildCommand}" CommandParameter="ImageVisible" />
+                            <MenuItem Header="Text is on screen" Command="{Binding AddChildCommand}" CommandParameter="TextVisible" />
+                            <MenuItem Header="Pixel has colour" Command="{Binding AddChildCommand}" CommandParameter="PixelColor" />
+                            <MenuItem Header="Area has colour" Command="{Binding AddChildCommand}" CommandParameter="AreaColor" />
+                            <MenuItem Header="Window is open" Command="{Binding AddChildCommand}" CommandParameter="WindowExists" />
+                            <MenuItem Header="Window is focused" Command="{Binding AddChildCommand}" CommandParameter="WindowFocused" />
+                            <MenuItem Header="Variable comparison" Command="{Binding AddChildCommand}" CommandParameter="Variable" />
+                            <Separator />
+                            <MenuItem Header="ALL of… (AND group)" Command="{Binding AddChildCommand}" CommandParameter="All" />
+                            <MenuItem Header="ANY of… (OR group)" Command="{Binding AddChildCommand}" CommandParameter="Any" />
+                        </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
+            </StackPanel>
+
+            <!-- ===== Image ===== -->
+            <StackPanel Spacing="6" IsVisible="{Binding IsImage}">
+                <Grid ColumnDefinitions="Auto,*">
+                    <Border Width="96" Height="64" CornerRadius="6" Background="{DynamicResource Doink.Bg.Input}"
+                            BorderBrush="{DynamicResource Doink.Border}" BorderThickness="1" ClipToBounds="True">
+                        <Panel>
+                            <Image Source="{Binding Thumbnail}" Stretch="Uniform" RenderOptions.BitmapInterpolationMode="None" />
+                            <TextBlock Text="no image" Classes="caption" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       IsVisible="{Binding !HasImage}" />
+                        </Panel>
+                    </Border>
+                    <StackPanel Grid.Column="1" Margin="10,0,0,0" Spacing="4" VerticalAlignment="Center">
+                        <Button Classes="primary" Padding="10,5" Command="{Binding CaptureImageCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <PathIcon Data="{StaticResource Icon.Crosshair}" Width="13" Height="13" />
+                                <TextBlock Text="Capture from screen" Foreground="White" FontSize="12" />
+                            </StackPanel>
+                        </Button>
+                        <TextBlock Classes="caption" Text="{Binding ImageInfo}" />
+                    </StackPanel>
+                </Grid>
+                <TextBlock Classes="lbl" Text="{Binding ThresholdText}" />
+                <Slider Minimum="0.6" Maximum="1" Value="{Binding Threshold}" TickFrequency="0.01" />
+            </StackPanel>
+
+            <!-- ===== Text ===== -->
+            <StackPanel Spacing="6" IsVisible="{Binding IsText}">
+                <ComboBox HorizontalAlignment="Stretch" ItemsSource="{x:Static vm:Options.TextMatchModes}" SelectedItem="{Binding Match}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate><TextBlock Text="{ReflectionBinding Converter={StaticResource EnumText}}" /></DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+                <TextBox Text="{Binding Text}" Watermark="Text to look for (supports {variables})" IsVisible="{Binding NeedsText}" />
+                <CheckBox Content="Match upper/lower case" IsChecked="{Binding CaseSensitive}" />
+            </StackPanel>
+
+            <!-- ===== Pixel ===== -->
+            <StackPanel Spacing="6" IsVisible="{Binding IsPixel}">
+                <TextBlock Classes="lbl" Text="PIXEL" />
+                <TextBlock Classes="secondary mono" Text="{Binding PointText}" FontSize="12" />
+            </StackPanel>
+
+            <!-- ===== Colour (pixel + area) ===== -->
+            <StackPanel Spacing="6" IsVisible="{Binding UsesColor}">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <Border Width="28" Height="28" CornerRadius="6" Background="{Binding ColorBrush}" BorderBrush="{DynamicResource Doink.Border}" BorderThickness="1" />
+                    <TextBox Grid.Column="1" Margin="8,0" Text="{Binding Color}" FontFamily="Cascadia Mono,Consolas,Menlo,monospace" />
+                    <Button Grid.Column="2" Padding="10,5" Command="{Binding PickColorCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <PathIcon Data="{StaticResource Icon.Crosshair}" Width="13" Height="13" />
+                            <TextBlock Text="Pick" FontSize="12" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
+                <Grid ColumnDefinitions="*,10,*">
+                    <StackPanel>
+                        <TextBlock Classes="lbl" Text="TOLERANCE (0–255)" />
+                        <NumericUpDown Value="{Binding Tolerance}" Minimum="0" Maximum="255" Increment="1" FormatString="0" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" IsVisible="{Binding IsArea}">
+                        <TextBlock Classes="lbl" Text="AT LEAST % OF AREA" />
+                        <NumericUpDown Value="{Binding Percent}" Minimum="0.1" Maximum="100" Increment="5" FormatString="0.#" />
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+
+            <!-- ===== Search area ===== -->
+            <StackPanel Spacing="4" IsVisible="{Binding UsesRegion}">
+                <TextBlock Classes="lbl" Text="WHERE TO LOOK" />
+                <Grid ColumnDefinitions="*,Auto,Auto">
+                    <TextBlock Classes="secondary" Text="{Binding RegionText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" FontSize="12" />
+                    <Button Grid.Column="1" Classes="ghost" Padding="8,4" FontSize="12" Content="Pick area" Command="{Binding PickRegionCommand}" />
+                    <Button Grid.Column="2" Classes="ghost" Padding="8,4" FontSize="12" Content="Whole" Command="{Binding ClearRegionCommand}"
+                            ToolTip.Tip="Search the whole screen (or the whole window)" />
+                </Grid>
+                <CheckBox Content="Relative to a window (follows it when it moves)" IsChecked="{Binding RegionRelativeToWindow}" FontSize="12" />
+            </StackPanel>
+
+            <!-- ===== Window ===== -->
+            <StackPanel Spacing="4" IsVisible="{Binding IsWindowRelevant}">
+                <TextBlock Classes="lbl" Text="WINDOW (APP NAME + TITLE CONTAINS)" />
+                <Grid ColumnDefinitions="*,6,*,Auto">
+                    <TextBox Text="{Binding WindowProcess}" Watermark="app, e.g. chrome" />
+                    <TextBox Grid.Column="2" Text="{Binding WindowTitle}" Watermark="title contains (optional)" />
+                    <Button Grid.Column="3" Classes="ghost icon" Margin="4,0,0,0" ToolTip.Tip="Pick from open windows" Command="{Binding PickWindowCommand}">
+                        <PathIcon Data="{StaticResource Icon.Window}" />
+                    </Button>
+                </Grid>
+            </StackPanel>
+
+            <!-- ===== Variable ===== -->
+            <Grid ColumnDefinitions="*,6,Auto,6,*" IsVisible="{Binding IsVariable}">
+                <TextBox Text="{Binding Variable}" Watermark="variable name" />
+                <ComboBox Grid.Column="2" ItemsSource="{x:Static vm:Options.CompareOps}" SelectedItem="{Binding Op}" MinWidth="80">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate><TextBlock Text="{ReflectionBinding Converter={StaticResource EnumText}}" /></DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+                <TextBox Grid.Column="4" Text="{Binding Text}" Watermark="value" />
+            </Grid>
+
+            <!-- ===== Test result ===== -->
+            <TextBlock Text="{Binding TestResult}" FontSize="12" TextWrapping="Wrap"
+                       IsVisible="{Binding TestResult, Converter={x:Static ObjectConverters.IsNotNull}}"
+                       Foreground="{StaticResource Doink.Red}" Classes.ok="{Binding TestPassed}">
+                <TextBlock.Styles>
+                    <Style Selector="TextBlock.ok">
+                        <Setter Property="Foreground" Value="{StaticResource Doink.Green}" />
+                    </Style>
+                </TextBlock.Styles>
+            </TextBlock>
+        </StackPanel>
+    </Border>
+</UserControl>

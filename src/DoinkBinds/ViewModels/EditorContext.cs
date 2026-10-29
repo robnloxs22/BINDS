@@ -1,5 +1,7 @@
 using DoinkBinds.Models;
+using DoinkBinds.Platform;
 using DoinkBinds.Services;
+using DoinkBinds.Services.Automation;
 
 namespace DoinkBinds.ViewModels;
 
@@ -33,6 +35,15 @@ public sealed class EditorContext(
     public ISettingsService Settings { get; } = settings;
     public IDialogService Dialogs { get; } = dialogs;
     public ILibraryActions Library { get; } = library;
+
+    // Automation services (set by the composition root; may be null in design-time/tests).
+    public IScreenPicker? Picker { get; init; }
+    public IScreenVision? Vision { get; init; }
+    public IPlatformServices? Platform { get; init; }
+    public VariableStore? Variables { get; init; }
+    public IMacroLibraryService? MacroLibrary { get; init; }
+    public IAutomationStore? Automation { get; init; }
+    public IClipboardService? Clipboard { get; init; }
 }
 
 /// <summary>Static option lists for combo boxes.</summary>
@@ -44,6 +55,15 @@ public static class Options
     public static IReadOnlyList<HotkeyScope> Scopes { get; } = Enum.GetValues<HotkeyScope>();
     public static IReadOnlyList<MacroActionType> ActionTypes { get; } = Enum.GetValues<MacroActionType>();
     public static IReadOnlyList<string> Themes { get; } = new[] { "Dark", "Light", "System" };
+    public static IReadOnlyList<ConditionType> ConditionTypes { get; } = Enum.GetValues<ConditionType>();
+    public static IReadOnlyList<TextMatchMode> TextMatchModes { get; } = Enum.GetValues<TextMatchMode>();
+    public static IReadOnlyList<CompareOp> CompareOps { get; } = Enum.GetValues<CompareOp>();
+    public static IReadOnlyList<FailAction> FailActions { get; } = Enum.GetValues<FailAction>();
+    public static IReadOnlyList<LoopKind> LoopKinds { get; } = Enum.GetValues<LoopKind>();
+    public static IReadOnlyList<VariableOp> VariableOps { get; } = Enum.GetValues<VariableOp>();
+    public static IReadOnlyList<WindowOp> WindowOps { get; } = Enum.GetValues<WindowOp>();
+    public static IReadOnlyList<RuleTriggerMode> TriggerModes { get; } = Enum.GetValues<RuleTriggerMode>();
+    public static IReadOnlyList<WindowStateKind> WindowStates { get; } = Enum.GetValues<WindowStateKind>();
     public static IReadOnlyList<KeyOption> Keys { get; } =
         KeyCodes.All.Select(k => new KeyOption(k.Key, k.Value)).OrderBy(k => k.SortKey).ToList();
 }

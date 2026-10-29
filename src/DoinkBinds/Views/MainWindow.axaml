@@ -10,7 +10,7 @@
         x:DataType="vm:MainWindowViewModel"
         Title="Doink Binds"
         Icon="/Assets/doink.ico"
-        Width="1220" Height="800" MinWidth="940" MinHeight="600"
+        Width="1280" Height="820" MinWidth="1000" MinHeight="620"
         WindowStartupLocation="CenterScreen">
 
     <Window.KeyBindings>
@@ -62,6 +62,39 @@
         <Style Selector="RadioButton.seg">
             <Setter Property="Margin" Value="0,0,14,0" />
         </Style>
+
+        <!-- Sidebar page tabs -->
+        <Style Selector="RadioButton.nav">
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border x:Name="bg" Background="Transparent" CornerRadius="8" Padding="6,7" Cursor="Hand">
+                        <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Center" />
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+            <Setter Property="Foreground" Value="{DynamicResource Doink.Text.Secondary}" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+        </Style>
+        <Style Selector="RadioButton.nav:pointerover /template/ Border#bg">
+            <Setter Property="Background" Value="{DynamicResource Doink.Bg.Hover}" />
+        </Style>
+        <Style Selector="RadioButton.nav:checked /template/ Border#bg">
+            <Setter Property="Background" Value="{DynamicResource Doink.Bg.Selected}" />
+        </Style>
+        <Style Selector="RadioButton.nav:checked">
+            <Setter Property="Foreground" Value="{DynamicResource Doink.Text}" />
+        </Style>
+        <Style Selector="RadioButton.nav TextBlock">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{Binding $parent[RadioButton].Foreground}" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="RadioButton.nav PathIcon">
+            <Setter Property="Width" Value="15" />
+            <Setter Property="Height" Value="15" />
+            <Setter Property="Foreground" Value="{Binding $parent[RadioButton].Foreground}" />
+        </Style>
     </Window.Styles>
 
     <Grid ColumnDefinitions="280,*">
@@ -69,7 +102,7 @@
         <!-- ============================== SIDEBAR ============================== -->
         <Border Grid.Column="0" Background="{DynamicResource Doink.Bg.Sidebar}"
                 BorderBrush="{DynamicResource Doink.Border.Subtle}" BorderThickness="0,0,1,0">
-            <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto">
 
                 <!-- Brand -->
                 <Grid Grid.Row="0" Margin="16,16,12,12" ColumnDefinitions="Auto,*,Auto">
@@ -84,8 +117,24 @@
                     </Button>
                 </Grid>
 
+                <!-- Page tabs -->
+                <UniformGrid Grid.Row="1" Columns="4" Margin="10,0,10,10">
+                    <RadioButton Classes="nav" GroupName="page" IsChecked="{Binding IsMacrosPage}" ToolTip.Tip="Macros">
+                        <StackPanel Spacing="3"><PathIcon Data="{StaticResource Icon.Keyboard}" HorizontalAlignment="Center" /><TextBlock Text="Macros" /></StackPanel>
+                    </RadioButton>
+                    <RadioButton Classes="nav" GroupName="page" IsChecked="{Binding IsRulesPage}" ToolTip.Tip="If/Then rules that watch the screen">
+                        <StackPanel Spacing="3"><PathIcon Data="{StaticResource Icon.Lightning}" HorizontalAlignment="Center" /><TextBlock Text="Rules" /></StackPanel>
+                    </RadioButton>
+                    <RadioButton Classes="nav" GroupName="page" IsChecked="{Binding IsLayoutsPage}" ToolTip.Tip="Saved window layouts">
+                        <StackPanel Spacing="3"><PathIcon Data="{StaticResource Icon.Window}" HorizontalAlignment="Center" /><TextBlock Text="Layouts" /></StackPanel>
+                    </RadioButton>
+                    <RadioButton Classes="nav" GroupName="page" IsChecked="{Binding IsReportsPage}" ToolTip.Tip="Test run reports">
+                        <StackPanel Spacing="3"><PathIcon Data="{StaticResource Icon.Check}" HorizontalAlignment="Center" /><TextBlock Text="Reports" /></StackPanel>
+                    </RadioButton>
+                </UniformGrid>
+
                 <!-- Search -->
-                <TextBox Grid.Row="1" Margin="12,0,12,10" Watermark="Search macros"
+                <TextBox Grid.Row="2" Margin="12,0,12,10" Watermark="Search macros" IsVisible="{Binding IsMacrosPage}"
                          Text="{Binding SearchText}">
                     <TextBox.InnerLeftContent>
                         <PathIcon Data="{StaticResource Icon.Search}" Width="14" Height="14" Margin="10,0,0,0"
@@ -94,7 +143,7 @@
                 </TextBox>
 
                 <!-- Library actions -->
-                <Grid Grid.Row="2" Margin="12,0,12,8" ColumnDefinitions="*,Auto,Auto">
+                <Grid Grid.Row="3" Margin="12,0,12,8" ColumnDefinitions="*,Auto,Auto,Auto" IsVisible="{Binding IsMacrosPage}">
                     <Button Classes="primary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                             Command="{Binding NewMacroCommand}" ToolTip.Tip="New macro (Ctrl+N)">
                         <StackPanel Orientation="Horizontal" Spacing="6">
@@ -110,10 +159,23 @@
                             Command="{Binding ImportCommand}" ToolTip.Tip="Import .doink file (Ctrl+I)">
                         <PathIcon Data="{StaticResource Icon.Import}" />
                     </Button>
+                    <Button Grid.Column="3" Classes="icon" Margin="6,0,0,0" Height="34" Width="34" ToolTip.Tip="More ways to create">
+                        <PathIcon Data="{StaticResource Icon.More}" />
+                        <Button.Flyout>
+                            <MenuFlyout>
+                                <MenuItem Header="Guided recording… (Shift+F6)" Command="{Binding OpenGuideCommand}" />
+                                <MenuItem Header="New auto-clicker…" Command="{Binding NewAutoClickerCommand}" />
+                                <Separator />
+                                <MenuItem Header="New macro" Command="{Binding NewMacroCommand}" />
+                                <MenuItem Header="New folder…" Command="{Binding NewFolderCommand}" />
+                                <MenuItem Header="Import .doink…" Command="{Binding ImportCommand}" />
+                            </MenuFlyout>
+                        </Button.Flyout>
+                    </Button>
                 </Grid>
 
                 <!-- Library tree -->
-                <Panel Grid.Row="3">
+                <Panel Grid.Row="4" IsVisible="{Binding IsMacrosPage}">
                     <TreeView ItemsSource="{Binding Folders}" SelectedItem="{Binding SelectedNode}"
                               Margin="6,0,6,6">
                         <TreeView.DataTemplates>
@@ -173,9 +235,98 @@
                     </StackPanel>
                 </Panel>
 
+                <!-- Rules sidebar -->
+                <Grid Grid.Row="2" Grid.RowSpan="3" RowDefinitions="Auto,Auto,*" IsVisible="{Binding IsRulesPage}" Margin="12,0,12,8">
+                    <Border Classes="card" Padding="12,8" Margin="0,0,0,8">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel>
+                                <TextBlock Text="Watch the screen" FontWeight="SemiBold" />
+                                <TextBlock Classes="caption" Text="Run enabled rules in the background (F10)" TextWrapping="Wrap" />
+                            </StackPanel>
+                            <ToggleSwitch Grid.Column="1" IsChecked="{Binding Rules.RulesEnabled}" />
+                        </Grid>
+                    </Border>
+                    <Button Grid.Row="1" Classes="primary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="0,0,0,8">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <PathIcon Data="{StaticResource Icon.Plus}" Width="14" Height="14" />
+                            <TextBlock Text="New rule" Foreground="White" />
+                        </StackPanel>
+                        <Button.Flyout>
+                            <MenuFlyout>
+                                <MenuItem Header="When an image appears → click it" Command="{Binding Rules.NewRuleCommand}" CommandParameter="image" />
+                                <MenuItem Header="When text appears → notify me" Command="{Binding Rules.NewRuleCommand}" CommandParameter="text" />
+                                <MenuItem Header="When a window opens → press Enter" Command="{Binding Rules.NewRuleCommand}" CommandParameter="window" />
+                                <MenuItem Header="Blank rule" Command="{Binding Rules.NewRuleCommand}" CommandParameter="blank" />
+                            </MenuFlyout>
+                        </Button.Flyout>
+                    </Button>
+                    <ListBox Grid.Row="2" ItemsSource="{Binding Rules.Rules}" SelectedItem="{Binding Rules.SelectedRule}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:RuleViewModel">
+                                <Grid ColumnDefinitions="Auto,*,Auto">
+                                    <Ellipse Classes="dot" Classes.playing="{Binding IsTrueNow}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock Text="{Binding Name}" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Classes="caption" Text="{Binding Condition.Summary}" TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                    <CheckBox Grid.Column="2" IsChecked="{Binding Enabled}" ToolTip.Tip="Enabled" Margin="6,0,0,0" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+
+                <!-- Layouts sidebar -->
+                <Grid Grid.Row="2" Grid.RowSpan="3" RowDefinitions="Auto,*" IsVisible="{Binding IsLayoutsPage}" Margin="12,0,12,8">
+                    <Button Classes="primary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="0,0,0,8"
+                            Command="{Binding Layouts.NewLayoutCommand}" ToolTip.Tip="Saves where all open windows are now">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <PathIcon Data="{StaticResource Icon.Plus}" Width="14" Height="14" />
+                            <TextBlock Text="Save current windows" Foreground="White" />
+                        </StackPanel>
+                    </Button>
+                    <ListBox Grid.Row="1" ItemsSource="{Binding Layouts.Items}" SelectedItem="{Binding Layouts.Selected}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:LayoutViewModel">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Name}" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Classes="caption" Text="{Binding Summary}" />
+                                    </StackPanel>
+                                    <Button Grid.Column="1" Classes="ghost icon" ToolTip.Tip="Apply" Command="{Binding ApplyCommand}">
+                                        <PathIcon Data="{StaticResource Icon.Play}" Foreground="{StaticResource Doink.Green}" />
+                                    </Button>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+
+                <!-- Reports sidebar -->
+                <Grid Grid.Row="2" Grid.RowSpan="3" RowDefinitions="Auto,*" IsVisible="{Binding IsReportsPage}" Margin="12,0,12,8">
+                    <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,8">
+                        <TextBlock Classes="section" Text="RECENT RUNS" VerticalAlignment="Center" />
+                        <Button Grid.Column="1" Classes="ghost" Padding="8,4" FontSize="12" Content="Refresh" Command="{Binding Reports.RefreshCommand}" />
+                        <Button Grid.Column="2" Classes="ghost" Padding="8,4" FontSize="12" Content="Clear" Command="{Binding Reports.DeleteAllCommand}" />
+                    </Grid>
+                    <ListBox Grid.Row="1" ItemsSource="{Binding Reports.Items}" SelectedItem="{Binding Reports.Selected}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ReportItemViewModel">
+                                <Grid ColumnDefinitions="Auto,*">
+                                    <Ellipse Classes="dot" Classes.playing="{Binding Passed}" Classes.recording="{Binding Failed}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock Text="{Binding MacroName}" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Classes="caption" Text="{Binding When}" />
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+
                 <!-- Footer: global on/off switch + status -->
-                <Border Grid.Row="4" Background="{DynamicResource Doink.Bg.Deep}" Padding="14,10">
-                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                <Border Grid.Row="5" Background="{DynamicResource Doink.Bg.Deep}" Padding="14,10">
+                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto">
                         <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                             <PathIcon Data="{StaticResource Icon.Power}" Width="14" Height="14"
                                       Foreground="{DynamicResource Doink.Text.Secondary}" />
@@ -183,7 +334,14 @@
                         </StackPanel>
                         <ToggleSwitch Grid.Column="1" IsChecked="{Binding MacrosEnabled}" Margin="0,-6"
                                       ToolTip.Tip="Turn macro hotkeys on / off" />
-                        <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="6" Margin="0,4,0,0">
+                        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                            <PathIcon Data="{StaticResource Icon.Lightning}" Width="14" Height="14"
+                                      Foreground="{DynamicResource Doink.Text.Secondary}" />
+                            <TextBlock Text="Watch screen (rules)" VerticalAlignment="Center" FontWeight="Medium" />
+                        </StackPanel>
+                        <ToggleSwitch Grid.Row="1" Grid.Column="1" IsChecked="{Binding Rules.RulesEnabled}" Margin="0,-6"
+                                      ToolTip.Tip="Turn background If/Then rules on / off (F10)" />
+                        <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="6" Margin="0,4,0,0">
                             <Ellipse Classes="dot" Classes.recording="{Binding IsRecording}"
                                      Classes.playing="{Binding IsPlaying}" Classes.paused="{Binding IsPaused}"
                                      VerticalAlignment="Center" />
@@ -213,6 +371,11 @@
 
             <Panel Grid.Row="1">
 
+                <views:RulesPageView DataContext="{Binding Rules}" IsVisible="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).IsRulesPage}" />
+                <views:LayoutsPageView DataContext="{Binding Layouts}" IsVisible="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).IsLayoutsPage}" />
+                <views:ReportsPageView DataContext="{Binding Reports}" IsVisible="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).IsReportsPage}" />
+
+                <Panel IsVisible="{Binding IsMacrosPage}">
                 <!-- Empty state -->
                 <StackPanel IsVisible="{Binding !HasSelection}" VerticalAlignment="Center" HorizontalAlignment="Center"
                             Spacing="12" MaxWidth="420">
@@ -280,40 +443,53 @@
                     <Border Grid.Row="1" Classes="card" Margin="0,0,0,14" Padding="18,14">
                         <Grid ColumnDefinitions="Auto,Auto,*">
                             <!-- Record / Play / Stop -->
-                            <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-                                <Button Classes="transport danger" Command="{Binding ToggleRecordCommand}"
+                            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                <Button Classes="transport danger" Width="58" Height="58" CornerRadius="29" Command="{Binding ToggleRecordCommand}"
                                         ToolTip.Tip="{Binding RecordButtonTip}">
                                     <Panel>
                                         <PathIcon Data="{StaticResource Icon.Record}" IsVisible="{Binding !IsRecording}" />
                                         <PathIcon Data="{StaticResource Icon.Stop}" IsVisible="{Binding IsRecording}" />
                                     </Panel>
                                 </Button>
-                                <Button Classes="transport success" Command="{Binding PlayPauseCommand}"
+                                <Button Classes="transport success" Width="58" Height="58" CornerRadius="29" Command="{Binding PlayPauseCommand}"
                                         ToolTip.Tip="{Binding PlayButtonTip}">
                                     <Panel>
                                         <PathIcon Data="{StaticResource Icon.Play}" IsVisible="{Binding !IsPlaying}" />
                                         <PathIcon Data="{StaticResource Icon.Pause}" IsVisible="{Binding IsPlaying}" />
                                     </Panel>
                                 </Button>
-                                <Button Classes="transport" Command="{Binding StopCommand}" ToolTip.Tip="{Binding StopButtonTip}">
+                                <Button Classes="transport" Width="58" Height="58" CornerRadius="29" Command="{Binding StopCommand}" ToolTip.Tip="{Binding StopButtonTip}">
                                     <PathIcon Data="{StaticResource Icon.Stop}" />
+                                </Button>
+                                <Button Classes="transport" Command="{Binding OpenGuideCommand}" Width="46" Height="46" CornerRadius="23"
+                                        ToolTip.Tip="Guided recording — build step by step, or record with a pause after each click (Shift+F6)">
+                                    <PathIcon Data="M7.5,5.6L5,7L6.4,4.5L5,2L7.5,3.4L10,2L8.6,4.5L10,7L7.5,5.6M19.5,15.4L22,14L20.6,16.5L22,19L19.5,17.6L17,19L18.4,16.5L17,14L19.5,15.4M22,2L20.6,4.5L22,7L19.5,5.6L17,7L18.4,4.5L17,2L19.5,3.4L22,2M13.34,12.78L15.78,10.34L13.66,8.22L11.22,10.66L13.34,12.78M14.37,7.29L16.71,9.63C17.1,10 17.1,10.65 16.71,11.04L5.04,22.71C4.65,23.1 4,23.1 3.63,22.71L1.29,20.37C0.9,20 0.9,19.35 1.29,18.96L12.96,7.29C13.35,6.9 14,6.9 14.37,7.29Z" />
                                 </Button>
                             </StackPanel>
 
-                            <Rectangle Grid.Column="1" Width="1" Margin="20,4" Fill="{DynamicResource Doink.Border}" />
+                            <Rectangle Grid.Column="1" Width="1" Margin="16,4" Fill="{DynamicResource Doink.Border}" />
 
                             <!-- Options -->
-                            <Grid Grid.Column="2" RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="Auto,*" VerticalAlignment="Center">
+                            <Grid Grid.Column="2" RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="Auto,*" VerticalAlignment="Center">
                                 <TextBlock Grid.Row="0" Classes="section" Text="REPEAT" VerticalAlignment="Center" Margin="0,0,14,0" />
-                                <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <WrapPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                                     <RadioButton Classes="seg" GroupName="mode" Content="Once" IsChecked="{Binding SelectedMacro.IsModeOnce}" />
                                     <RadioButton Classes="seg" GroupName="mode" IsChecked="{Binding SelectedMacro.IsModeLoopCount}">
                                         <StackPanel Orientation="Horizontal" Spacing="6">
-                                            <TextBlock Text="Loop" VerticalAlignment="Center" />
-                                            <NumericUpDown Value="{Binding SelectedMacro.LoopCount}" Minimum="1" Maximum="1000000"
-                                                           Increment="1" FormatString="0" Width="110" Height="30"
+                                            <NumericUpDown Classes="compact" Value="{Binding SelectedMacro.LoopCount}" Minimum="1" Maximum="1000000"
+                                                           Increment="1" FormatString="0" Width="72" Height="30"
                                                            IsEnabled="{Binding SelectedMacro.IsModeLoopCount}" />
                                             <TextBlock Text="times" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </RadioButton>
+                                    <RadioButton Classes="seg" GroupName="mode" IsChecked="{Binding SelectedMacro.IsModeDuration}"
+                                                 ToolTip.Tip="Keep looping for a number of minutes">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <TextBlock Text="for" VerticalAlignment="Center" />
+                                            <NumericUpDown Classes="compact" Value="{Binding SelectedMacro.DurationMinutes}" Minimum="0.1" Maximum="100000"
+                                                           Increment="1" FormatString="0.#" Width="72" Height="30"
+                                                           IsEnabled="{Binding SelectedMacro.IsModeDuration}" />
+                                            <TextBlock Text="min" VerticalAlignment="Center" />
                                         </StackPanel>
                                     </RadioButton>
                                     <RadioButton Classes="seg" GroupName="mode" IsChecked="{Binding SelectedMacro.IsModeInfinite}"
@@ -323,11 +499,11 @@
                                             <TextBlock Text="Until stopped" VerticalAlignment="Center" />
                                         </StackPanel>
                                     </RadioButton>
-                                </StackPanel>
+                                </WrapPanel>
 
                                 <TextBlock Grid.Row="1" Classes="section" Text="SPEED" VerticalAlignment="Center" Margin="0,8,14,0" />
                                 <Grid Grid.Row="1" Grid.Column="1" ColumnDefinitions="*,Auto,Auto" Margin="0,8,0,0" MaxWidth="560" HorizontalAlignment="Left">
-                                    <Slider Minimum="0.25" Maximum="3" Value="{Binding SelectedMacro.Speed}" MinWidth="220"
+                                    <Slider Minimum="0.25" Maximum="3" Value="{Binding SelectedMacro.Speed}" MinWidth="200"
                                             TickFrequency="0.25" IsSnapToTickEnabled="False" VerticalAlignment="Center" />
                                     <TextBlock Grid.Column="1" Text="{Binding SelectedMacro.SpeedText}" FontWeight="Bold"
                                                Width="52" TextAlignment="Right" VerticalAlignment="Center" />
@@ -342,18 +518,33 @@
                                 </Grid>
 
                                 <TextBlock Grid.Row="2" Classes="section" Text="WINDOW" VerticalAlignment="Center" Margin="0,8,14,0" />
-                                <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Spacing="16" Margin="0,8,0,0">
-                                    <CheckBox Content="Restore window focus" IsChecked="{Binding SelectedMacro.RestoreWindowFocus}"
+                                <WrapPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Margin="0,8,0,0">
+                                    <CheckBox Content="Restore window focus" IsChecked="{Binding SelectedMacro.RestoreWindowFocus}" Margin="0,0,16,0"
                                               ToolTip.Tip="Bring the recorded app to the front when the macro switches to it" />
-                                    <CheckBox Content="Wait for window" IsChecked="{Binding SelectedMacro.WaitForWindow}"
+                                    <CheckBox Content="Wait for window" IsChecked="{Binding SelectedMacro.WaitForWindow}" Margin="0,0,16,0"
                                               ToolTip.Tip="Pause until the recorded app is focused (timeout in Settings)" />
                                     <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                                         <TextBlock Classes="caption" Text="Loop gap" VerticalAlignment="Center" />
-                                        <NumericUpDown Value="{Binding SelectedMacro.LoopDelayMs}" Minimum="0" Maximum="3600000"
-                                                       Increment="50" FormatString="0" Width="130" Height="30" />
+                                        <NumericUpDown Classes="compact" Value="{Binding SelectedMacro.LoopDelayMs}" Minimum="0" Maximum="3600000"
+                                                       Increment="50" FormatString="0" Width="80" Height="30" />
                                         <TextBlock Classes="caption" Text="ms" VerticalAlignment="Center" />
                                     </StackPanel>
-                                </StackPanel>
+                                </WrapPanel>
+
+                                <TextBlock Grid.Row="3" Classes="section" Text="HUMANIZE" VerticalAlignment="Center" Margin="0,8,14,0" />
+                                <WrapPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Margin="0,8,0,0">
+                                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,16,0" ToolTip.Tip="Randomly vary every wait by up to this much">
+                                        <TextBlock Classes="caption" Text="Timing ±" VerticalAlignment="Center" />
+                                        <NumericUpDown Classes="compact" Value="{Binding SelectedMacro.TimingJitterPercent}" Minimum="0" Maximum="90" Increment="5" FormatString="0" Width="64" Height="30" />
+                                        <TextBlock Classes="caption" Text="%" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,16,0" ToolTip.Tip="Randomly offset clicks and moves by up to this many pixels">
+                                        <TextBlock Classes="caption" Text="Mouse ±" VerticalAlignment="Center" />
+                                        <NumericUpDown Classes="compact" Value="{Binding SelectedMacro.MouseJitterPx}" Minimum="0" Maximum="100" Increment="1" FormatString="0" Width="64" Height="30" />
+                                        <TextBlock Classes="caption" Text="px" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                    <CheckBox Content="Always save a run report" IsChecked="{Binding SelectedMacro.SaveReport}" />
+                                </WrapPanel>
                             </Grid>
                         </Grid>
                     </Border>
@@ -388,6 +579,8 @@
                         </Grid>
                     </Border>
                 </Grid>
+
+                </Panel>
 
                 <!-- Settings sheet -->
                 <Panel Classes="overlay" IsVisible="{Binding IsSettingsOpen}" Background="{DynamicResource Doink.Overlay}">

@@ -10,6 +10,19 @@ public interface IPinPointPicker
     Task<DesktopPoint?> PickAsync(string? hint = null);
 }
 
+/// <summary>Result of dragging a box on screen: the desktop rectangle and what was inside it.</summary>
+public sealed record RegionPick(ScreenRegion Region, DoinkBinds.Vision.BgraImage? Image);
+
+/// <summary>Result of picking a colour: where, and the colour as #RRGGBB.</summary>
+public sealed record ColorPick(DesktopPoint Point, string Hex);
+
+/// <summary>On-screen pickers beyond the crosshair: snipping-tool style area selection and colour picking.</summary>
+public interface IScreenPicker : IPinPointPicker
+{
+    Task<RegionPick?> PickRegionAsync(string? hint = null);
+    Task<ColorPick?> PickColorAsync(string? hint = null);
+}
+
 /// <summary>Extra reference points for the Window and Found positioning modes.</summary>
 public sealed record PositionContext(DesktopPoint? WindowOrigin, DesktopPoint? Found);
 

@@ -229,9 +229,32 @@
 
                 <!-- ============ Appearance + About ============ -->
                 <StackPanel Spacing="8">
-                    <TextBlock Classes="section" Text="APPEARANCE &amp; DATA" />
+                    <TextBlock Classes="section" Text="APP, APPEARANCE &amp; DATA" />
                     <Border Classes="card">
                         <StackPanel Spacing="4">
+                            <Grid Classes="row" ColumnDefinitions="*,Auto">
+                                <StackPanel>
+                                    <TextBlock Classes="settingTitle" Text="Keep running in the tray when closed" />
+                                    <TextBlock Classes="caption" Text="Hotkeys and rules keep working; quit from the tray icon." />
+                                </StackPanel>
+                                <ToggleSwitch Grid.Column="1" IsChecked="{Binding CloseToTray}" />
+                            </Grid>
+                            <Grid Classes="row" ColumnDefinitions="*,Auto" IsVisible="{Binding StartupSupported}">
+                                <TextBlock Classes="settingTitle" Text="Start Doink Binds when I log in" VerticalAlignment="Center" />
+                                <ToggleSwitch Grid.Column="1" IsChecked="{Binding StartWithSystem}" />
+                            </Grid>
+                            <Grid Classes="row" ColumnDefinitions="*,Auto">
+                                <TextBlock Classes="settingTitle" Text="Start hidden in the tray" VerticalAlignment="Center" />
+                                <ToggleSwitch Grid.Column="1" IsChecked="{Binding StartMinimized}" />
+                            </Grid>
+                            <Grid Classes="row" ColumnDefinitions="*,140">
+                                <StackPanel>
+                                    <TextBlock Classes="settingTitle" Text="Run reports to keep" />
+                                    <TextBlock Classes="caption" Text="Older reports and their screenshots are deleted automatically." />
+                                </StackPanel>
+                                <NumericUpDown Grid.Column="1" Value="{Binding MaxReports}" Minimum="5" Maximum="10000" Increment="10" FormatString="0" />
+                            </Grid>
+                            <Separator Margin="0,6" />
                             <Grid Classes="row" ColumnDefinitions="*,160">
                                 <TextBlock Classes="settingTitle" Text="Theme" VerticalAlignment="Center" />
                                 <ComboBox Grid.Column="1" HorizontalAlignment="Stretch" ItemsSource="{x:Static vm:Options.Themes}"

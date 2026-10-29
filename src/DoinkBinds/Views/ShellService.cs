@@ -61,6 +61,26 @@ public sealed class ShellService(ILogService log) : IShellService
         }
     }
 
+    public void OpenFile(string path)
+    {
+        try
+        {
+            if (OperatingSystem.IsMacOS()) Process.Start("open", $"\"{path}\"");
+            else if (OperatingSystem.IsWindows()) Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+            else Process.Start("xdg-open", $"\"{path}\"");
+        }
+        catch (Exception ex)
+        {
+            log.Error($"Could not open {path}", ex);
+        }
+    }
+
+    public void ShowGuide(object guideViewModel) => Ui(() =>
+    {
+        var w = new GuideWindow { DataContext = guideViewModel };
+        w.Show();
+    });
+
     public void ApplyTheme(string theme) => Ui(() =>
     {
         if (Avalonia.Application.Current is { } app)

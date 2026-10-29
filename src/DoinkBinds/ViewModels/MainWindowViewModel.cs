@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 using DoinkBinds.Models;
 using DoinkBinds.Platform;
 using DoinkBinds.Services;
+using DoinkBinds.Services.Automation;
 
 namespace DoinkBinds.ViewModels;
 
@@ -23,6 +24,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase, ILibraryActions
     private readonly IDialogService _dialogs;
     private readonly IShellService _shell;
     private readonly ILogService _log;
+    private readonly IRuleEngine _rules;
+    private readonly IAutomationStore _automation;
     private readonly EditorContext _ctx;
 
     private readonly List<MacroViewModel> _allMacros = new();
@@ -45,7 +48,16 @@ public sealed partial class MainWindowViewModel : ViewModelBase, ILibraryActions
         IMousePositionService positions,
         IDialogService dialogs,
         IShellService shell,
-        ILogService log)
+        ILogService log,
+        IScreenPicker picker,
+        IScreenVision vision,
+        VariableStore variables,
+        IAutomationStore automation,
+        IRuleEngine rules,
+        ILayoutService layouts,
+        IReportService reports,
+        IClipboardService clipboard,
+        IStartupService startup)
     {
         _platform = platform;
         _library = library;
@@ -56,9 +68,23 @@ public sealed partial class MainWindowViewModel : ViewModelBase, ILibraryActions
         _dialogs = dialogs;
         _shell = shell;
         _log = log;
-        _ctx = new EditorContext(positions, hotkeys, settings, dialogs, this);
+        _rules = rules;
+        _automation = automation;
+        _ctx = new EditorContext(positions, hotkeys, settings, dialogs, this)
+        {
+            Picker = picker,
+            Vision = vision,
+            Platform = platform,
+            Variables = variables,
+            MacroLibrary = library,
+            Automation = automation,
+            Clipboard = clipboard
+        };
 
-        Settings = new SettingsViewModel(settings, hotkeys, platform, shell, positions, Toast);
+        Settings = new SettingsViewModel(settings, hotkeys, platform, shell, positions, Toast, startup);
+        Rules = new RulesPageViewModel(automation, rules, settings, _ctx, dialogs);
+        Layouts = new LayoutsPageViewModel(automation, layouts, platform, dialogs, hotkeys, this);
+        Reports = new ReportsPageViewModel(reports, shell, dialogs);
 
         _saveTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(600) };
         _saveTimer.Tick += (_, _) => FlushSaves();
@@ -112,6 +138,11 @@ public sealed partial class MainWindowViewModel : ViewModelBase, ILibraryActions
         SelectedMacro = _allMacros.FirstOrDefault(m => m.Id == last) ?? _allMacros.FirstOrDefault();
         RefreshTriggers();
         ImportFromCommandLine();
+        Reports.Refresh();
+
+        // Background rules: the thread always runs but only evaluates while "Watch the screen" is on.
+        _rules.IsSuspended = () => _recorder.IsRecording || IsCountingDown || _guide is not null;
+        _rules.Start();
 
         // Start the global hook (recording + hotkeys depend on it).
         var permission = _platform.CheckPermissions(prompt: true);
@@ -281,6 +312,12 @@ public sealed partial class MainWindowViewModel : ViewModelBase, ILibraryActions
         {
             var folder = SelectedMacro?.Folder ?? (SelectedNode as FolderViewModel)?.Name ?? "";
             var macro = _library.Import(path, folder);
+            if (!await ConfirmRiskySteps(macro))
+            {
+                _library.Delete(macro);
+                Toast("Import cancelled");
+                return;
+            }
             RebuildTree();
             SelectedMacro = _allMacros.FirstOrDefault(m => m.Id == macro.Id);
             Toast($"Imported \"{macro.Name}\"", ToastKind.Success);
@@ -290,6 +327,51 @@ public sealed partial class MainWindowViewModel : ViewModelBase, ILibraryActions
             _log.Error($"Import failed: {path}", ex);
             await _dialogs.ShowMessageAsync("Import failed", $"That file could not be imported.\n\n{ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Safety: a macro from someone else can open programs or close windows. Show exactly what it
+    /// would launch before it's added to the library.
+    /// </summary>
+    private async Task<bool> ConfirmRiskySteps(Macro macro)
+    {
+        var risky = macro.Actions
+            .Where(a => a.Type == MacroActionType.OpenApp || (a.Type == MacroActionType.WindowAction && a.WindowOp == WindowOp.Close))
+            .Select(a => a.Type == MacroActionType.OpenApp ? $"• opens: {a.Text}{(string.IsNullOrEmpty(a.Arguments) ? "" : " " + a.Arguments)}" : $"• closes window: {a.Window}")
+            .Distinct()
+            .ToList();
+        if (risky.Count == 0) return true;
+        return await _dialogs.ConfirmAsync("This macro runs programs",
+            $"\"{macro.Name}\" contains steps that start programs or close windows:\n\n{string.Join("\n", risky.Take(12))}" +
+            (risky.Count > 12 ? $"\n…and {risky.Count - 12} more" : "") +
+            "\n\nOnly import macros from people you trust.", "Import anyway", danger: true);
+    }
+
+    /// <summary>Creates an auto-clicker macro (click where the cursor is, N times per second, until stopped).</summary>
+    [RelayCommand]
+    private async Task NewAutoClickerAsync()
+    {
+        var input = await _dialogs.PromptAsync("New auto-clicker", "Clicks per second (1–50):", "10", "Create");
+        if (input is null) return;
+        if (!double.TryParse(input.Replace(',', '.'), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var cps) || cps <= 0)
+        {
+            Toast("Please enter a number of clicks per second", ToastKind.Error);
+            return;
+        }
+        cps = Math.Clamp(cps, 0.1, 50);
+        var vm = CreateMacro(SelectedMacro?.Folder ?? "", $"Auto-clicker {cps:0.#}/s");
+        vm.ReplaceActions(new List<MacroAction>
+        {
+            new() { Type = MacroActionType.MouseClick, Button = MacroMouseButton.Left, Count = 1, Position = null, DelayMs = (int)Math.Round(1000 / cps) }
+        });
+        vm.Model.Playback.Mode = PlaybackMode.LoopInfinite;
+        vm.Model.Playback.LoopDelayMs = 0;
+        vm.Model.Playback.RestoreWindowFocus = false;
+        vm.Model.Description = "Clicks wherever the mouse is. Press Play (or set a trigger hotkey), F9 stops.";
+        MacroChanged(vm);
+        FlushSaves();
+        SelectedMacro = vm;
+        Toast($"Auto-clicker ready — {HotkeyText(HotkeyAction.PlayPause)} starts it, {HotkeyText(HotkeyAction.StopLoop)} stops it", ToastKind.Success);
     }
 
     [RelayCommand(CanExecute = nameof(HasSelection))]
@@ -461,11 +543,15 @@ public sealed partial class MainWindowViewModel : ViewModelBase, ILibraryActions
         }
     }
 
+    /// <summary>Per-macro and per-layout hotkeys share the trigger mechanism (both are identified by Guid).</summary>
     public void RefreshTriggers()
     {
+        List<WindowLayout> layouts;
+        lock (_automation.Data) layouts = _automation.Data.Layouts.ToList();
         _hotkeys.SetMacroTriggers(_library.Macros
             .Where(m => m.TriggerHotkey is not null)
-            .Select(m => (m.Id, m.TriggerHotkey!)));
+            .Select(m => (m.Id, m.TriggerHotkey!))
+            .Concat(layouts.Where(l => l.Hotkey is not null).Select(l => (l.Id, l.Hotkey!))));
     }
 
     // =====================================================================================
@@ -555,6 +641,74 @@ public sealed partial class MainWindowViewModel : ViewModelBase, ILibraryActions
     private void DismissWarning() => PlatformWarning = null;
 
     // =====================================================================================
+    // Pages (Macros / Rules / Layouts / Reports)
+    // =====================================================================================
+
+    public RulesPageViewModel Rules { get; }
+    public LayoutsPageViewModel Layouts { get; }
+    public ReportsPageViewModel Reports { get; }
+
+    public enum Page { Macros, Rules, Layouts, Reports }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsMacrosPage), nameof(IsRulesPage), nameof(IsLayoutsPage), nameof(IsReportsPage))]
+    private Page _currentPage = Page.Macros;
+
+    public bool IsMacrosPage { get => CurrentPage == Page.Macros; set { if (value) CurrentPage = Page.Macros; } }
+    public bool IsRulesPage { get => CurrentPage == Page.Rules; set { if (value) CurrentPage = Page.Rules; } }
+    public bool IsLayoutsPage { get => CurrentPage == Page.Layouts; set { if (value) CurrentPage = Page.Layouts; } }
+    public bool IsReportsPage { get => CurrentPage == Page.Reports; set { if (value) { CurrentPage = Page.Reports; Reports.Refresh(); } } }
+
+    // =====================================================================================
+    // Guided recording
+    // =====================================================================================
+
+    private GuideViewModel? _guide;
+
+    [RelayCommand]
+    private void OpenGuide()
+    {
+        if (_guide is not null) return;
+        if (Status != AppStatus.Idle)
+        {
+            Toast("Stop recording / playback first", ToastKind.Error);
+            return;
+        }
+        CurrentPage = Page.Macros;
+        _guide = new GuideViewModel(_ctx, _recorder, _shell, () =>
+        {
+            // Build into the selected macro if it's empty, else a new one (never overwrite work).
+            var target = SelectedMacro is { HasSteps: false } empty ? empty : CreateMacro(SelectedMacro?.Folder ?? "", $"Guided {DateTime.Now:MMM d HH.mm}");
+            SelectedMacro = target;
+            return target;
+        });
+        _guide.CloseRequested += (_, _) =>
+        {
+            _guide = null;
+            FlushSaves();
+            _shell.RestoreMainWindow();
+        };
+        _shell.ShowGuide(_guide);
+        if (_settings.Settings.MinimizeWhileRecording) _shell.MinimizeMainWindow();
+    }
+
+    // =====================================================================================
+    // Tray / window lifetime
+    // =====================================================================================
+
+    public bool CloseToTray => _settings.Settings.CloseToTray;
+    public bool StartMinimized => _settings.Settings.StartMinimized;
+
+    [RelayCommand]
+    private void ToggleRulesFromTray() => Rules.RulesEnabled = !Rules.RulesEnabled;
+
+    [RelayCommand]
+    private void ToggleMacrosFromTray() => MacrosEnabled = !MacrosEnabled;
+
+    [RelayCommand]
+    private void StopFromTray() => Stop();
+
+    // =====================================================================================
     // Settings panel
     // =====================================================================================
 
@@ -601,12 +755,27 @@ public sealed partial class MainWindowViewModel : ViewModelBase, ILibraryActions
             case HotkeyAction.PlayPause:
                 PlayPause();
                 break;
+            case HotkeyAction.ToggleRules:
+                Rules.RulesEnabled = !Rules.RulesEnabled;
+                break;
+            case HotkeyAction.GuidedRecording:
+                OpenGuide();
+                break;
         }
     }
 
     private void OnMacroTrigger(Guid id)
     {
         if (!MacrosEnabled || IsRecording || IsCountingDown) return;
+
+        WindowLayout? layout;
+        lock (_automation.Data) layout = _automation.Data.Layouts.FirstOrDefault(l => l.Id == id);
+        if (layout is not null)
+        {
+            Layouts.ApplyLayout(layout);
+            return;
+        }
+
         var macro = _allMacros.FirstOrDefault(m => m.Id == id);
         if (macro is null) return;
 
@@ -776,6 +945,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, ILibraryActions
         if (_player.Play(macro.Model, macro.Model.Playback))
         {
             macro.IsPlaying = true;
+            macro.RecordRun();
             if (_settings.Settings.MinimizeWhilePlaying) _shell.MinimizeMainWindow();
         }
     }
@@ -828,7 +998,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase, ILibraryActions
         ProgressValue = 0;
         if (_settings.Settings.MinimizeWhilePlaying) _shell.RestoreMainWindow();
 
-        if (r.Error is not null) Toast(r.Error, ToastKind.Error);
+        if (r.Report is { Result: "Failed" } && r.Error is null) Toast($"Finished with failed checks — see Reports ({r.Report.FailedCount} failed)", ToastKind.Error);
+        else if (r.Error is not null) Toast(r.Error + (r.Report is not null ? " (details in Reports)" : ""), ToastKind.Error);
         else if (r.Cancelled) Toast("Playback stopped");
         else Toast(r.IterationsCompleted > 1 ? $"Finished {r.IterationsCompleted} loops" : "Playback finished", ToastKind.Success);
     }
@@ -853,6 +1024,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase, ILibraryActions
                 if (_recordingTarget is { } t && actions.Count > 0) t.ReplaceActions(actions);
             }
             _player.Stop();
+            _rules.Stop();
+            Rules.FlushSave();
             FlushSaves();
             _settings.Save();
             _platform.Hook.Stop();

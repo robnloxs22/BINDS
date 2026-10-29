@@ -195,6 +195,13 @@
         <Setter Property="BorderBrush" Value="{DynamicResource Doink.Border.Subtle}" />
     </Style>
 
+    <!-- Inline number fields: no spinner buttons (type, or use the mouse wheel / arrow keys) -->
+    <Style Selector="NumericUpDown.compact">
+        <Setter Property="ShowButtonSpinner" Value="False" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="MinWidth" Value="64" />
+    </Style>
+
     <!-- ===================== Lists ===================== -->
     <Style Selector="ListBox">
         <Setter Property="Background" Value="Transparent" />

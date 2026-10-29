@@ -49,6 +49,13 @@ public sealed class DialogService : IDialogService
         return files.Count > 0 ? files[0].TryGetLocalPath() : null;
     }
 
+    public async Task<string?> PickAnyFileAsync(string title)
+    {
+        if (Owner?.StorageProvider is not { } sp) return null;
+        var files = await sp.OpenFilePickerAsync(new FilePickerOpenOptions { Title = title, AllowMultiple = false });
+        return files.Count > 0 ? files[0].TryGetLocalPath() : null;
+    }
+
     public async Task<string?> PickSaveFileAsync(string title, string suggestedFileName)
     {
         if (Owner?.StorageProvider is not { } sp) return null;

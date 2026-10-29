@@ -28,6 +28,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="DoinkBinds.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
     <!-- Bundled OCR models (PaddleOCR PP-OCRv4 via RapidOCR, Apache-2.0). Embedded so the app stays one file. -->
     <EmbeddedResource Include="Ocr\det.onnx" LogicalName="DoinkBinds.Ocr.det.onnx" />

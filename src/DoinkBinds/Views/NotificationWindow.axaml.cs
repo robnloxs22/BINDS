@@ -24,6 +24,6 @@ public partial class NotificationWindow : Window
             _ => Color.Parse("#5865F2")
         };
         Card.BorderBrush = new SolidColorBrush(color);
-        Icon.Foreground = new SolidColorBrush(color);
+        KindIcon.Foreground = new SolidColorBrush(color);
     }
 }

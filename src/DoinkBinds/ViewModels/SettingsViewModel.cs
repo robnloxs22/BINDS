@@ -102,9 +102,14 @@ public sealed partial class SettingsViewModel : ViewModelBase
 
     [ObservableProperty] private string? _permissionMessage;
 
+    private readonly IStartupService _startup;
+    private readonly Action<string, ToastKind> _toast;
+
     public SettingsViewModel(ISettingsService settings, IHotkeyService hotkeys, IPlatformServices platform,
-        IShellService shell, IMousePositionService positions, Action<string, ToastKind> toast)
+        IShellService shell, IMousePositionService positions, Action<string, ToastKind> toast, IStartupService startup)
     {
+        _startup = startup;
+        _toast = toast;
         _settings = settings;
         _platform = platform;
         _shell = shell;
@@ -229,6 +234,41 @@ public sealed partial class SettingsViewModel : ViewModelBase
 
     public bool IsWindows => OperatingSystem.IsWindows();
     public bool IsMac => OperatingSystem.IsMacOS();
+
+    // ---------------- Background & startup
+    public bool CloseToTray
+    {
+        get => S.CloseToTray;
+        set => Set(S.CloseToTray, value, v => S.CloseToTray = v);
+    }
+
+    public bool StartMinimized
+    {
+        get => S.StartMinimized;
+        set => Set(S.StartMinimized, value, v => S.StartMinimized = v);
+    }
+
+    public bool StartupSupported => _startup.IsSupported;
+
+    public bool StartWithSystem
+    {
+        get => _startup.IsEnabled;
+        set
+        {
+            if (value == _startup.IsEnabled) return;
+            var err = _startup.SetEnabled(value);
+            if (err is not null) _toast($"Could not change start-up setting: {err}", ToastKind.Error);
+            S.StartWithSystem = _startup.IsEnabled;
+            _settings.Save();
+            OnPropertyChanged();
+        }
+    }
+
+    public decimal MaxReports
+    {
+        get => S.MaxReports;
+        set => Set(S.MaxReports, (int)Math.Clamp(value, 5, 10_000), v => S.MaxReports = v);
+    }
 
     // ---------------- Appearance
     public string Theme

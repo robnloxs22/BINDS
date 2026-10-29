@@ -10,6 +10,7 @@ public interface IDialogService
     Task<string?> ChooseAsync(string title, string message, IReadOnlyList<string> options, string? selected = null);
     Task ShowMessageAsync(string title, string message);
     Task<string?> PickOpenFileAsync(string title);
+    Task<string?> PickAnyFileAsync(string title);
     Task<string?> PickSaveFileAsync(string title, string suggestedFileName);
 }
 
@@ -22,7 +23,13 @@ public interface IShellService
     void MinimizeMainWindow();
     void RestoreMainWindow();
     void OpenFolder(string path);
+
+    /// <summary>Opens a file with its default app (e.g. an HTML report in the browser).</summary>
+    void OpenFile(string path);
     void ApplyTheme(string theme);
+
+    /// <summary>Shows the always-on-top guided recording window.</summary>
+    void ShowGuide(object guideViewModel);
 }
 
 /// <summary>Pop-up notifications raised by macros/rules (Notify steps). Implemented in the UI layer.</summary>
@@ -30,6 +37,13 @@ public interface INotificationService
 {
     /// <summary>Thread-safe. Shows a floating notification that stays visible even when Doink Binds is minimised.</summary>
     void Notify(string title, string message, ToastKind kind = ToastKind.Info);
+}
+
+/// <summary>System clipboard (text). Implemented in the UI layer.</summary>
+public interface IClipboardService
+{
+    Task SetTextAsync(string text);
+    Task<string?> GetTextAsync();
 }
 
 public enum ToastKind

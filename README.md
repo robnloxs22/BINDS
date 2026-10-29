@@ -2,6 +2,8 @@
 
 **Doink Binds** is a mouse and keyboard macro recorder and player for **Windows and macOS**. It records clicks, keys, mouse movement, timings and the focused window, and replays them on demand. You can loop a macro, change its playback speed and bind it to a hotkey.
 
+It can also **read the screen**: find an image, read text (built-in OCR, no internet needed), check a pixel's colour or notice a window opening, and then act on it. Write "**when this happens, do that**" rules that watch in the background, put **If / Else / Loop** steps inside macros, build macros with a **guided recorder**, arrange your apps with saved **window layouts**, and get **pass/fail test reports** with screenshots.
+
 The dark interface is modeled on Discord and Notion. Under the hood the app uses MVVM and native OS hooks.
 
 ![Doink Binds main window](docs/screenshot.png)
@@ -17,7 +19,9 @@ The dark interface is modeled on Discord and Notion. Under the hood the app uses
 | Architecture | **MVVM** with **CommunityToolkit.Mvvm** + **Microsoft.Extensions.DependencyInjection** | Source-generated observable properties and commands; services are swappable and testable |
 | OS integration | Hand-written P/Invoke: **Win32** (`WH_KEYBOARD_LL`, `WH_MOUSE_LL`, `SendInput`) and **macOS CoreGraphics** (`CGEventTap`, `CGEventPost`, `NSWorkspace`) | No third-party native dependencies, and you control every timing-critical detail |
 | Data | JSON **`.doink`** files (System.Text.Json) | Human-readable, versioned, easy to share |
-| Tests | xUnit with a fake platform | The recorder, player, hotkeys, coordinate math and library are verified headlessly |
+| Screen reading | GDI `BitBlt` (Windows) / `CGDisplayCreateImageForRect` (macOS), a hand-written template matcher, and **PaddleOCR PP-OCRv4** models on **ONNX Runtime** | Fully offline and bundled in the app — nothing to install, nothing sent anywhere |
+| Window management | Win32 `EnumWindows`/`SetWindowPos`, macOS `CGWindowList` + Accessibility (`AXUIElement`) | Move, resize, focus, minimise and close other apps' windows |
+| Tests | xUnit with a fake platform and a fake screen | The recorder, player, flow control, OCR, image matching, rules, layouts, editor and library are verified headlessly |
 
 ---
 
@@ -38,7 +42,39 @@ The dark interface is modeled on Discord and Notion. Under the hood the app uses
 - **Macro library**: folders, search, rename, duplicate, move, delete, and **import/export of `.doink` files**. Changes auto-save.
 - **Timeline editor**: shows every step. You can edit delays, positions, buttons, keys and scroll amounts, and you can reorder, duplicate, delete or insert steps. Bulk tools remove all mouse moves, scale all delays, or convert all positions to another mode.
 - **Feedback**: a floating always-on-top indicator (it never steals focus), a live view of recorded actions, the current step highlighted during playback, and toasts.
+- **Humanize**: random ± timing and ± mouse jitter per macro, so playback doesn't look robotic. **Repeat for N minutes** as well as N times.
 - **Settings**: hotkeys and their scopes, default mouse mode, monitor awareness, sampling rate and jitter filter, recording countdown, scan-code mode for games (Windows), minimize while recording or playing, and a dark, light or system theme.
+
+### Screen reading & automation (new)
+
+- **Conditions** — what Doink Binds can "see":
+  - **Image is on screen** — capture a picture of a button/icon by dragging a box; it's found again even if it moves.
+  - **Text is on screen** — built-in OCR (English letters and numbers). Contains / equals / starts with / regex / number compare (e.g. "score > 1000").
+  - **Pixel colour** and **area colour** (with tolerance and "% of the area").
+  - **Window exists** / **window is focused**.
+  - **Variable** compare (numbers or text).
+  - Combine them with **AND / OR / NOT** groups. Every condition can be limited to an area (dragged on screen) and can follow a window when it moves. A **Test** button shows the result straight away.
+- **Rules** (Rules tab) — *When this happens, do that*, running in the background:
+  - Fire once each time the condition becomes true, or repeatedly while it stays true.
+  - Check interval per rule (how fast it watches), cooldown, stop after N times, skip while a macro is playing.
+  - THEN steps use the same editor as macros: run a macro, click where the thing was found, type, notify, window actions, …
+  - **F10** (or the switch at the bottom of the sidebar) turns watching on/off.
+- **New step types in macros** (Add step menu):
+  - Flow: **If / Else / End If**, **Loop** (N times, while, until, forever) / **End Loop**, **Break**, **Stop macro**, **Run another macro**.
+  - Screen: **Wait for** (image / text / colour / window, with a timeout), **Find & click** (image or text), **Read text into a variable**, **Check** (a test assertion), **Screenshot**.
+  - Other: **Type text** (any characters, emoji included), **Random wait**, **Set variable** (set / add / subtract / append, with `{name}` placeholders and `{date}`, `{time}`, `{random:1-10}`…), **Notify**, **Open app / file / website**, **Window action**, **Comment**.
+  - Clicks can go to a fixed position, a position **inside a window**, or **where the image/text was found** (with an offset).
+  - When a step fails (e.g. the image never appeared) the macro **stops and shows an error** by default; per step you can choose *skip* or *retry* instead.
+- **Window layouts** (Layouts tab): save where your apps are, then restore it with one click, a hotkey, or a macro step. Apps that aren't running are started automatically and the layout waits for them.
+- **Test reports** (Reports tab): every run with Check steps (or with *Always save a run report*) writes a report with PASS/FAIL per check and a screenshot of every failure. Open it in the browser as HTML.
+
+### Building macros (new)
+
+- **Guided recording** (wand button, or **Shift+F6**), in a small always-on-top window:
+  - **Step by step** — pick each action from a list (click, type, key combo, wait, wait for image/text, check, open app, screenshot…) and point at the screen. Nothing is recorded by accident.
+  - **Record, pausing after each click** — use your computer normally; after every click you can name the step, turn it into "click this image", add a wait or a condition, take a screenshot, or undo it.
+- **Manual building**: categorised **Add step** menu with forms, **Templates** (Auto-clicker, Click an image when it appears, Refresh until text appears, Fill in a login form, If image is visible … else …, Repeat with a counter, Keep awake, Screenshot every minute, Open app and wait for its window, Test: check text is shown), **drag & drop** reordering, multi-select, **copy / cut / paste** (also between macros), **undo / redo** (Ctrl+Z / Ctrl+Y). Steps inside If / Loop blocks are indented, and a banner warns about a missing End If / End Loop.
+- **Tray icon**: closing the window keeps hotkeys and rules running in the tray. Optional *start with Windows/macOS* and *start hidden*.
 
 ---
 
@@ -74,10 +110,17 @@ BINDS/
    │  ├─ MacroPlayerService.cs     ← IMacroPlayerService
    │  ├─ HotkeyService.cs          ← IHotkeyService
    │  ├─ MacroLibraryService.cs    ← IMacroLibraryService
-   │  ├─ MousePositionService.cs   ← IMousePositionService (+ IPinPointPicker)
+   │  ├─ MousePositionService.cs   ← IMousePositionService (+ IPinPointPicker / IScreenPicker)
+   │  ├─ Automation/               ← ScreenVision (conditions), RuleEngine, LayoutService,
+   │  │                               ReportService, AutomationStore, Variables
    │  ├─ SettingsService.cs, LogService.cs, AppPaths.cs, UiServices.cs
-   ├─ ViewModels/                  ← MainWindow, Macro, Action (step), Folder, Settings
-   ├─ Views/                       ← MainWindow, MacroEditorView, SettingsView, PinPointOverlayWindow,
+   ├─ Vision/                      ← BgraImage, ImageMatcher, OcrEngine (PaddleOCR on ONNX Runtime)
+   ├─ Ocr/                         ← det.onnx + rec.onnx (embedded in the app)
+   ├─ ViewModels/                  ← MainWindow, Macro, Action (step), Condition, Rules, Layouts,
+   │                                  Reports, Guide, StepFactory (templates), Folder, Settings
+   ├─ Views/                       ← MainWindow, MacroEditorView, StepEditorView, ConditionEditorView,
+   │                                  Rules/Layouts/ReportsPageView, GuideWindow, RegionPickerWindow,
+   │                                  NotificationWindow, SettingsView, PinPointOverlayWindow,
    │                                  StatusIndicatorWindow, DialogWindow + Dialog/Shell/PinPoint services
    ├─ Converters/
    └─ Properties/PublishProfiles/  ← win-x64, win-arm64, osx-arm64, osx-x64
@@ -118,7 +161,7 @@ All publish profiles produce a **self-contained** build: the end user doesn't ne
 **Command line:**
 ```powershell
 dotnet publish src/DoinkBinds/DoinkBinds.csproj -p:PublishProfile=win-x64
-# → publish\win-x64\DoinkBinds.exe   (about 45 MB, runs on any Windows 10/11 x64 PC)
+# → publish\win-x64\DoinkBinds.exe   (runs on any Windows 10/11 x64 PC; the OCR engine is included)
 ```
 
 **Installer.** This needs [Inno Setup 6](https://jrsoftware.org/isinfo.php). It produces `publish\DoinkBinds-Setup-win-x64.exe`, which creates Start-menu and desktop shortcuts and registers the `.doink` file association:
@@ -150,7 +193,7 @@ xcrun notarytool submit publish/DoinkBinds-osx-arm64.dmg --keychain-profile <pro
 | OS | What to do |
 |---|---|
 | **Windows** | Nothing. To automate an app that runs **as Administrator**, Doink Binds must also run as Administrator. Windows blocks input injection into elevated windows (UIPI). |
-| **macOS** | On first launch, macOS asks for **Input Monitoring** (needed to record and for hotkeys) and **Accessibility** (needed to play back). Enable *Doink Binds* in **System Settings → Privacy & Security** under both lists, then restart the app. A yellow banner explains what's missing. Settings has a **Request access** button. |
+| **macOS** | On first launch, macOS asks for **Input Monitoring** (needed to record and for hotkeys) and **Accessibility** (needed to play back and to move other apps' windows). Screen reading (images, text, colours) also needs **Screen Recording**. Enable *Doink Binds* in **System Settings → Privacy & Security** under both lists, then restart the app. A yellow banner explains what's missing. Settings has a **Request access** button. |
 | **Linux** | The UI and library work, but recording and playback are not implemented (no global hook backend yet). |
 
 ---
@@ -170,7 +213,9 @@ xcrun notarytool submit publish/DoinkBinds-osx-arm64.dmg --keychain-profile <pro
    - Change the delay, type, button, key or position. Use **Pick position on screen** for pixel-perfect placement.
    - Keyboard: **Del** deletes a step, **Alt+↑/↓** moves it, **Ctrl+D** duplicates it.
    - **Add step → Click at picked position…** builds a click macro without recording.
-6. **Organize:** create folders, right-click macros to rename, duplicate, move, export or delete them, and search from the sidebar. Use **Import** (Ctrl+I) for `.doink` files from friends.
+6. **React to the screen:** in the Rules tab click **New rule → Click an image when it appears**, press **Capture from screen**, drag a box around the button, then switch on **Watch the screen** (F10).
+7. **Test an app:** add **Check** steps (Add step → Testing). Every run then writes a PASS/FAIL report with screenshots in the Reports tab.
+8. **Organize:** create folders, right-click macros to rename, duplicate, move, export or delete them, and search from the sidebar. Use **Import** (Ctrl+I) for `.doink` files from friends.
 
 ### Tips
 - **Different screen sizes?** Set *Default mouse position mode* to **Percentage of screen** before recording, or convert an existing macro with **⋮ → Convert all positions to → Percentage**.
@@ -207,7 +252,9 @@ Plain, indented JSON. Version 1:
 }
 ```
 
-- **`type`**: `MouseMove`, `MouseDown`, `MouseUp`, `MouseClick`, `MouseWheel`, `KeyDown`, `KeyUp`, `KeyPress` or `Wait`.
+- **`type`**: `MouseMove`, `MouseDown`, `MouseUp`, `MouseClick`, `MouseWheel`, `KeyDown`, `KeyUp`, `KeyPress`, `Wait`, and the automation steps `TypeText`, `RandomWait`, `RunMacro`, `OpenApp`, `WindowAction`, `WaitFor`, `FindAndClick`, `If`, `Else`, `EndIf`, `Loop`, `EndLoop`, `Break`, `SetVariable`, `ReadText`, `Check`, `Notify`, `Screenshot`, `Comment`, `StopMacro`.
+- **`condition`** (on `If`, `WaitFor`, `FindAndClick`, `Check`, `Loop` while/until): `{ "type": "TextVisible", "text": "Victory", "match": "Contains", "region": {…} }`. Groups use `"type": "All"` / `"Any"` with `children`; `"negate": true` means NOT. Captured images are stored inline as base64 PNG, so a `.doink` file is self-contained.
+- Importing a macro that opens apps or closes windows asks for confirmation first.
 - **`delayMs`**: the wait before the step, at 1× speed.
 - **`keyCode`**: a platform-neutral key code. It uses Windows virtual-key numbering; macOS key codes are translated automatically.
 - **`position.mode`**: `Absolute`, `Relative`, `Percentage` or `PinPoint`. For `Percentage`, `monitorIndex: -1` means a percentage of the whole desktop.
@@ -222,7 +269,10 @@ Plain, indented JSON. Version 1:
 - **Player timing.** Each loop iteration is scheduled against an absolute `Stopwatch` timeline: coarse waits followed by a short spin, with `timeBeginPeriod(1)` on Windows, so per-step overhead never adds up to drift. Pausing, and time spent waiting for a window, shift the timeline instead of compressing later steps.
 - **Coordinates.** The app is Per-Monitor-V2 DPI aware on Windows (physical pixels everywhere). On macOS it uses CoreGraphics global points. `MousePositionService` does all the mode math and clamps every resolved point onto a real monitor, including layouts with gaps.
 - **Adding a platform** (for example Linux/X11): implement `IPlatformServices` (hook, simulator, windows, screens) and return it from `PlatformFactory`.
-- **Adding an action type:** add it to `MacroActionType`, then handle it in `MacroPlayerService.Execute`, in `ActionViewModel.Title`, and in the "Add step" menu.
+- **Adding an action type:** add it to `MacroActionType`, then handle it in `MacroPlayerService.Execute`, in `ActionViewModel.Title`, in `StepFactory`, and in the "Add step" menu.
+- **Flow control.** The player is a program-counter runner. `BlockMap` pairs If/Else/End If and Loop/End Loop once per run, and reports structure errors with step numbers.
+- **Screen reading.** `ScreenVision` evaluates condition trees with one screen capture per check (cached across the tree). Image matching works at full resolution with early-rejecting probe pixels (a few ms on a 1080p screen). OCR runs text detection + recognition; small areas skip detection.
+- **Rules** are evaluated on a background timer (`RuleEngine`); their THEN steps run through the normal player.
 - **Data location:** `%APPDATA%\DoinkBinds` on Windows and `~/Library/Application Support/DoinkBinds` on macOS. Override it with the `DOINK_DATA_DIR` environment variable, or put an empty `portable.txt` next to the executable to store data in `./Data` (portable mode). A log file is written to `doink.log` in the data folder.
 
 ## 10. Known limitations
@@ -231,3 +281,14 @@ Plain, indented JSON. Version 1:
 - Keys bound as Doink Binds hotkeys are excluded from recordings.
 - On macOS, other apps' window titles need Screen Recording permission, so window matching uses the application name.
 - Linux has no input backend yet.
+- OCR is tuned for English letters and numbers; very small or stylised game fonts may read imperfectly — limit the area and use "contains" matching.
+- Finding an image is pixel-based: if the button changes size (different zoom/DPI) re-capture it, or lower the similarity.
+
+---
+
+## 11. Third-party notices
+
+- **PaddleOCR PP-OCRv4** detection/recognition models (via the RapidOCR distribution) — Apache License 2.0.
+- **ONNX Runtime** — MIT License.
+- **SkiaSharp**, **Avalonia**, **CommunityToolkit.Mvvm** — MIT License.
+- Tests use the **Inter** font — SIL Open Font License 1.1.

@@ -18,7 +18,26 @@ public interface IMacroRecorderService
 
     /// <summary>Stops and returns the cleaned-up list of actions.</summary>
     List<MacroAction> Stop();
+
+    // ---- Guided recording ----
+
+    /// <summary>When true, recording pauses after every completed click and raises <see cref="ClickCompleted"/>.</summary>
+    bool PauseAfterClicks { get; set; }
+
+    bool IsPaused { get; }
+
+    /// <summary>Raised (background thread) after a click while <see cref="PauseAfterClicks"/> is on. Recording is paused.</summary>
+    event EventHandler<GuidedClick>? ClickCompleted;
+
+    /// <summary>Returns the actions recorded so far and clears them (recording continues afterwards).</summary>
+    List<MacroAction> Drain();
+
+    /// <summary>Continues after a pause. Time spent paused is not counted as a delay.</summary>
+    void Resume();
 }
+
+/// <summary>A click captured during guided recording, with a picture of what was under the cursor at mouse-down.</summary>
+public sealed record GuidedClick(DesktopPoint Point, MacroMouseButton Button, DoinkBinds.Vision.BgraImage? Snapshot);
 
 public sealed class MacroRecorderService : IMacroRecorderService, IDisposable
 {
@@ -40,8 +59,16 @@ public sealed class MacroRecorderService : IMacroRecorderService, IDisposable
     private (DesktopPoint Point, long Ts)? _pendingMove;
     private WindowTarget? _lastWindow;
     private volatile bool _recording;
+    private volatile bool _paused;
+    private DoinkBinds.Vision.BgraImage? _downSnapshot;
+
+    /// <summary>Size of the picture captured around guided clicks (desktop units).</summary>
+    private const int SnapshotWidth = 90, SnapshotHeight = 54;
 
     public event EventHandler<MacroAction>? ActionRecorded;
+    public event EventHandler<GuidedClick>? ClickCompleted;
+    public bool PauseAfterClicks { get; set; }
+    public bool IsPaused => _paused;
 
     public MacroRecorderService(IPlatformServices platform, IHotkeyService hotkeys,
         IMousePositionService positions, ISettingsService settings)
@@ -83,7 +110,30 @@ public sealed class MacroRecorderService : IMacroRecorderService, IDisposable
             }
 
             _clock.Restart();
+            _paused = false;
             _recording = true;
+        }
+    }
+
+    public List<MacroAction> Drain()
+    {
+        lock (_gate)
+        {
+            FlushPendingMove();
+            var list = _actions.ToList();
+            _actions.Clear();
+            return list;
+        }
+    }
+
+    public void Resume()
+    {
+        lock (_gate)
+        {
+            _lastEmitTs = _lastMoveTs = Stopwatch.GetTimestamp();
+            _pendingMove = null;
+            _lastPos = _positions.GetCursorPosition();
+            _paused = false;
         }
     }
 
@@ -92,6 +142,7 @@ public sealed class MacroRecorderService : IMacroRecorderService, IDisposable
         lock (_gate)
         {
             _recording = false;
+            _paused = false;
             _clock.Stop();
             FlushPendingMove();
 
@@ -121,11 +172,11 @@ public sealed class MacroRecorderService : IMacroRecorderService, IDisposable
 
     private void OnInput(RawInputEvent e)
     {
-        if (!_recording || e.IsSynthetic) return;
+        if (!_recording || _paused || e.IsSynthetic) return;
 
         lock (_gate)
         {
-            if (!_recording) return;
+            if (!_recording || _paused) return;
             try
             {
                 Handle(e);
@@ -223,6 +274,18 @@ public sealed class MacroRecorderService : IMacroRecorderService, IDisposable
         {
             if (IgnoreBecauseOwnWindow()) return;
             _buttonsDown.Add(e.Button);
+            if (PauseAfterClicks)
+            {
+                // Picture of what is being clicked, for "click by image" / "wait for this first".
+                try
+                {
+                    _downSnapshot = _platform.Capture.Capture(e.X - SnapshotWidth / 2.0, e.Y - SnapshotHeight / 2.0, SnapshotWidth, SnapshotHeight);
+                }
+                catch
+                {
+                    _downSnapshot = null;
+                }
+            }
         }
         else if (!_buttonsDown.Remove(e.Button))
         {
@@ -238,6 +301,15 @@ public sealed class MacroRecorderService : IMacroRecorderService, IDisposable
             Position = MakePosition(new DesktopPoint(e.X, e.Y)),
             Window = CurrentWindow()
         }, e.Timestamp);
+
+        if (!down && PauseAfterClicks && _buttonsDown.Count == 0)
+        {
+            _paused = true;
+            var snapshot = _downSnapshot;
+            _downSnapshot = null;
+            var click = new GuidedClick(new DesktopPoint(e.X, e.Y), e.Button, snapshot);
+            ThreadPool.QueueUserWorkItem(_ => ClickCompleted?.Invoke(this, click));
+        }
     }
 
     private void HandleKey(RawInputEvent e)

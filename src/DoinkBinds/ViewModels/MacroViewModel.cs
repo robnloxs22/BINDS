@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using DoinkBinds.Models;
 using DoinkBinds.Services;
+using DoinkBinds.Services.Automation;
 
 namespace DoinkBinds.ViewModels;
 
@@ -12,18 +13,35 @@ namespace DoinkBinds.ViewModels;
 /// </summary>
 public sealed partial class MacroViewModel : ViewModelBase
 {
+    private const int MaxUndo = 100;
+
     private readonly EditorContext _ctx;
     private ObservableCollection<ActionViewModel>? _steps;
+
+    // Undo/redo store whole-timeline snapshots (JSON); small and impossible to get out of sync.
+    private readonly List<string> _undo = new();
+    private readonly List<string> _redo = new();
+    private string? _lastSnapshot;
+    private DateTime _lastEditUtc;
+    private ActionViewModel? _lastEditedStep;
+    private bool _restoring;
+
+    /// <summary>Internal clipboard (also mirrored to the system clipboard as JSON).</summary>
+    private static List<MacroAction>? _stepClipboard;
 
     public Macro Model { get; }
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(MoveStepUpCommand), nameof(MoveStepDownCommand),
-        nameof(DeleteStepCommand), nameof(DuplicateStepCommand), nameof(PickStepPositionCommand))]
+        nameof(DeleteStepCommand), nameof(DuplicateStepCommand), nameof(PickStepPositionCommand), nameof(CopyStepsCommand))]
     private ActionViewModel? _selectedStep;
+
+    /// <summary>All selected steps (multi-select with Ctrl/Shift). Set by the view.</summary>
+    public IReadOnlyList<ActionViewModel> SelectedSteps { get; private set; } = Array.Empty<ActionViewModel>();
 
     [ObservableProperty] private bool _isCapturingTrigger;
     [ObservableProperty] private bool _isPlaying;
+    [ObservableProperty] private string? _structureWarning;
 
     public MacroViewModel(Macro model, EditorContext ctx)
     {
@@ -66,6 +84,26 @@ public sealed partial class MacroViewModel : ViewModelBase
 
     public string DurationText => FormatDuration(TimeSpan.FromMilliseconds(Model.TotalDuration.TotalMilliseconds / Model.Playback.Speed));
 
+    public string StatsText => Model.RunCount == 0
+        ? "Never played"
+        : $"Played {Model.RunCount}× · last {Ago(Model.LastRunUtc)}";
+
+    private static string Ago(DateTime? utc)
+    {
+        if (utc is null) return "never";
+        var d = DateTime.UtcNow - utc.Value;
+        return d.TotalMinutes < 1 ? "just now" : d.TotalHours < 1 ? $"{d.TotalMinutes:0} min ago" :
+            d.TotalDays < 1 ? $"{d.TotalHours:0} h ago" : $"{utc.Value.ToLocalTime():MMM d}";
+    }
+
+    public void RecordRun()
+    {
+        Model.RunCount++;
+        Model.LastRunUtc = DateTime.UtcNow;
+        OnPropertyChanged(nameof(StatsText));
+        _ctx.Library.MacroChanged(this);
+    }
+
     public bool HasSteps => Model.Actions.Count > 0;
 
     private static string FormatDuration(TimeSpan t) =>
@@ -81,6 +119,8 @@ public sealed partial class MacroViewModel : ViewModelBase
             if (_steps is null)
             {
                 _steps = new ObservableCollection<ActionViewModel>(Model.Actions.Select((a, i) => CreateStep(a, i)));
+                Reindex();
+                _lastSnapshot ??= Snapshot();
             }
             return _steps;
         }
@@ -88,26 +128,72 @@ public sealed partial class MacroViewModel : ViewModelBase
 
     private ActionViewModel CreateStep(MacroAction a, int i)
     {
-        var vm = new ActionViewModel(a, i, _ => Changed());
+        var vm = new ActionViewModel(a, i, OnStepEdited, _ctx);
         vm.PositionModeChangeRequested += OnStepModeChange;
         return vm;
     }
 
-    /// <summary>Replaces all steps (used after a recording finishes).</summary>
+    /// <summary>Replaces all steps (used after a recording finishes / guided steps).</summary>
     public void ReplaceActions(List<MacroAction> actions)
     {
+        PushUndo();
         Model.Actions = actions;
         _steps = null;
         SelectedStep = null;
         OnPropertyChanged(nameof(Steps));
+        _lastSnapshot = Snapshot();
+        Reindex();
         Changed();
     }
 
-    private void SyncModelFromSteps()
+    /// <summary>Appends steps at the end (guided recording).</summary>
+    public void AppendActions(IEnumerable<MacroAction> actions)
     {
+        PushUndo();
+        foreach (var a in actions) Steps.Add(CreateStep(a, Steps.Count));
+        SyncModelFromSteps(pushUndo: false);
+    }
+
+    public void RemoveLastSteps(int count)
+    {
+        if (count <= 0 || Steps.Count == 0) return;
+        PushUndo();
+        for (var i = 0; i < count && Steps.Count > 0; i++) Steps.RemoveAt(Steps.Count - 1);
+        SyncModelFromSteps(pushUndo: false);
+    }
+
+    private void SyncModelFromSteps(bool pushUndo = true)
+    {
+        if (pushUndo) PushUndo();
         Model.Actions = Steps.Select(s => s.Model).ToList();
-        for (var i = 0; i < Steps.Count; i++) Steps[i].Index = i;
+        _lastSnapshot = Snapshot();
+        Reindex();
         Changed();
+    }
+
+    /// <summary>Updates numbers, If/Loop indentation and the structure warning.</summary>
+    private void Reindex()
+    {
+        if (_steps is null) return;
+        var depth = 0;
+        for (var i = 0; i < _steps.Count; i++)
+        {
+            var s = _steps[i];
+            s.Index = i;
+            var t = s.Model.Type;
+            if (t is MacroActionType.EndIf or MacroActionType.EndLoop or MacroActionType.Else) depth = Math.Max(0, depth - 1);
+            s.Indent = depth;
+            if (t is MacroActionType.If or MacroActionType.Loop or MacroActionType.Else) depth++;
+        }
+        try
+        {
+            MacroPlayerService.BlockMap.Build(Model.Actions);
+            StructureWarning = null;
+        }
+        catch (PlaybackException ex)
+        {
+            StructureWarning = ex.Message;
+        }
     }
 
     private void Changed()
@@ -116,9 +202,111 @@ public sealed partial class MacroViewModel : ViewModelBase
         OnPropertyChanged(nameof(DurationText));
         OnPropertyChanged(nameof(HasSteps));
         _ctx.Library.MacroChanged(this);
+        UndoCommand.NotifyCanExecuteChanged();
+        RedoCommand.NotifyCanExecuteChanged();
     }
 
-    private bool HasSelection() => SelectedStep is not null;
+    /// <summary>A field of a step was edited: coalesce rapid edits of the same step into one undo entry.</summary>
+    private void OnStepEdited(ActionViewModel step)
+    {
+        if (_restoring) return;
+        var now = DateTime.UtcNow;
+        if (!(ReferenceEquals(step, _lastEditedStep) && (now - _lastEditUtc).TotalMilliseconds < 1200))
+            PushUndo(captureCurrent: false);
+        _lastEditedStep = step;
+        _lastEditUtc = now;
+        _lastSnapshot = Snapshot();
+        Reindex();
+        Changed();
+    }
+
+    // ------------------------------------------------------------------ undo / redo
+
+    private string Snapshot() => System.Text.Json.JsonSerializer.Serialize(Model.Actions, AppPaths.Json);
+
+    /// <summary>Saves the state *before* a change. Structural edits snapshot the current state; field edits use the last snapshot.</summary>
+    private void PushUndo(bool captureCurrent = true)
+    {
+        if (_restoring) return;
+        var before = captureCurrent ? Snapshot() : _lastSnapshot ?? Snapshot();
+        if (_undo.Count == 0 || _undo[^1] != before) _undo.Add(before);
+        if (_undo.Count > MaxUndo) _undo.RemoveAt(0);
+        _redo.Clear();
+        _lastEditedStep = null;
+        if (captureCurrent) _lastSnapshot = null; // refreshed after the structural change completes
+    }
+
+    private bool CanUndo() => _undo.Count > 0;
+    private bool CanRedo() => _redo.Count > 0;
+
+    [RelayCommand(CanExecute = nameof(CanUndo))]
+    private void Undo()
+    {
+        if (_undo.Count == 0) return;
+        _redo.Add(Snapshot());
+        Restore(_undo[^1]);
+        _undo.RemoveAt(_undo.Count - 1);
+        Changed();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanRedo))]
+    private void Redo()
+    {
+        if (_redo.Count == 0) return;
+        _undo.Add(Snapshot());
+        Restore(_redo[^1]);
+        _redo.RemoveAt(_redo.Count - 1);
+        Changed();
+    }
+
+    private void Restore(string json)
+    {
+        _restoring = true;
+        try
+        {
+            var selectedIndex = SelectedStep is { } s ? Steps.IndexOf(s) : -1;
+            Model.Actions = System.Text.Json.JsonSerializer.Deserialize<List<MacroAction>>(json, AppPaths.Json) ?? new();
+            _steps = null;
+            OnPropertyChanged(nameof(Steps));
+            Reindex();
+            _lastSnapshot = json;
+            _lastEditedStep = null;
+            SelectedStep = selectedIndex >= 0 && selectedIndex < Steps.Count ? Steps[selectedIndex] : null;
+        }
+        finally
+        {
+            _restoring = false;
+        }
+    }
+
+    /// <summary>Runs many step edits as one undo entry.</summary>
+    private void Batch(Action edits)
+    {
+        PushUndo();
+        _restoring = true;
+        try { edits(); }
+        finally { _restoring = false; }
+        _lastSnapshot = Snapshot();
+        Reindex();
+        Changed();
+    }
+
+    // ------------------------------------------------------------------ selection helpers
+
+    public void SetSelection(IEnumerable<ActionViewModel> steps)
+    {
+        SelectedSteps = steps.Where(Steps.Contains).OrderBy(s => s.Index).ToList();
+        CopyStepsCommand.NotifyCanExecuteChanged();
+    }
+
+    /// <summary>The steps an action applies to: the multi-selection, else the single selection.</summary>
+    private List<ActionViewModel> Targets()
+    {
+        if (SelectedSteps.Count > 1) return SelectedSteps.Where(Steps.Contains).OrderBy(s => s.Index).ToList();
+        return SelectedStep is { } s ? new List<ActionViewModel> { s } : new List<ActionViewModel>();
+    }
+
+    private bool HasSelection() => SelectedStep is not null || SelectedSteps.Count > 0;
 
     [RelayCommand(CanExecute = nameof(HasSelection))]
     private void MoveStepUp() => MoveSelected(-1);
@@ -128,68 +316,206 @@ public sealed partial class MacroViewModel : ViewModelBase
 
     private void MoveSelected(int delta)
     {
-        if (SelectedStep is not { } step) return;
-        var i = Steps.IndexOf(step);
-        var j = i + delta;
-        if (i < 0 || j < 0 || j >= Steps.Count) return;
-        Steps.Move(i, j);
-        SyncModelFromSteps();
-        SelectedStep = step;
+        var targets = Targets();
+        if (targets.Count == 0) return;
+        var first = Steps.IndexOf(targets[0]);
+        var last = Steps.IndexOf(targets[^1]);
+        if ((delta < 0 && first == 0) || (delta > 0 && last == Steps.Count - 1)) return;
+        PushUndo();
+        if (delta < 0)
+            foreach (var t in targets) { var i = Steps.IndexOf(t); Steps.Move(i, i - 1); }
+        else
+            foreach (var t in Enumerable.Reverse(targets)) { var i = Steps.IndexOf(t); Steps.Move(i, i + 1); }
+        SyncModelFromSteps(pushUndo: false);
+        SelectedStep = targets[0];
+    }
+
+    /// <summary>Drag &amp; drop: moves the given steps so they start at <paramref name="targetIndex"/>.</summary>
+    public void MoveSteps(IReadOnlyList<ActionViewModel> steps, int targetIndex)
+    {
+        var moving = steps.Where(Steps.Contains).OrderBy(s => s.Index).ToList();
+        if (moving.Count == 0) return;
+        // Index in the list *without* the moved items.
+        var before = moving.Count(m => Steps.IndexOf(m) < targetIndex);
+        PushUndo();
+        foreach (var m in moving) Steps.Remove(m);
+        var insertAt = Math.Clamp(targetIndex - before, 0, Steps.Count);
+        for (var i = 0; i < moving.Count; i++) Steps.Insert(insertAt + i, moving[i]);
+        SyncModelFromSteps(pushUndo: false);
+        SelectedStep = moving[0];
     }
 
     [RelayCommand(CanExecute = nameof(HasSelection))]
     private void DeleteStep()
     {
-        if (SelectedStep is not { } step) return;
-        var i = Steps.IndexOf(step);
-        Steps.Remove(step);
-        SyncModelFromSteps();
+        var targets = Targets();
+        if (targets.Count == 0) return;
+        var i = Steps.IndexOf(targets[0]);
+        PushUndo();
+        foreach (var t in targets) Steps.Remove(t);
+        SyncModelFromSteps(pushUndo: false);
         SelectedStep = Steps.Count == 0 ? null : Steps[Math.Clamp(i, 0, Steps.Count - 1)];
     }
 
     [RelayCommand(CanExecute = nameof(HasSelection))]
     private void DuplicateStep()
     {
-        if (SelectedStep is not { } step) return;
-        var i = Steps.IndexOf(step);
-        var copy = CreateStep(step.Model.Clone(), i + 1);
-        Steps.Insert(i + 1, copy);
-        SyncModelFromSteps();
-        SelectedStep = copy;
+        var targets = Targets();
+        if (targets.Count == 0) return;
+        var at = Steps.IndexOf(targets[^1]) + 1;
+        PushUndo();
+        ActionViewModel? firstCopy = null;
+        foreach (var t in targets)
+        {
+            var copy = CreateStep(t.Model.Clone(), at);
+            Steps.Insert(at++, copy);
+            firstCopy ??= copy;
+        }
+        SyncModelFromSteps(pushUndo: false);
+        SelectedStep = firstCopy;
     }
 
-    /// <summary>Adds a new step after the selection (or at the end). Parameter = <see cref="MacroActionType"/> name.</summary>
+    // ------------------------------------------------------------------ clipboard
+
+    [RelayCommand(CanExecute = nameof(HasSelection))]
+    private async Task CopySteps()
+    {
+        var targets = Targets();
+        if (targets.Count == 0) return;
+        _stepClipboard = targets.Select(t => t.Model.Clone()).ToList();
+        if (_ctx.Clipboard is { } cb)
+        {
+            try
+            {
+                await cb.SetTextAsync(System.Text.Json.JsonSerializer.Serialize(
+                    new StepClipboardData { Steps = _stepClipboard }, AppPaths.Json));
+            }
+            catch { /* the internal clipboard still works */ }
+        }
+        _ctx.Library.Toast($"Copied {targets.Count} step{(targets.Count == 1 ? "" : "s")}");
+    }
+
+    [RelayCommand]
+    private async Task CutSteps()
+    {
+        await CopySteps();
+        DeleteStep();
+    }
+
+    [RelayCommand]
+    private async Task PasteSteps()
+    {
+        List<MacroAction>? steps = null;
+        if (_ctx.Clipboard is { } cb)
+        {
+            try
+            {
+                var text = await cb.GetTextAsync();
+                if (!string.IsNullOrWhiteSpace(text) && text.Contains("doink-steps"))
+                    steps = System.Text.Json.JsonSerializer.Deserialize<StepClipboardData>(text, AppPaths.Json)?.Steps;
+            }
+            catch { /* fall back to the internal clipboard */ }
+        }
+        steps ??= _stepClipboard?.Select(s => s.Clone()).ToList();
+        if (steps is not { Count: > 0 })
+        {
+            _ctx.Library.Toast("Nothing to paste — copy some steps first (Ctrl+C)");
+            return;
+        }
+        InsertSteps(steps.Select(s => s.Clone()).ToList());
+        _ctx.Library.Toast($"Pasted {steps.Count} step{(steps.Count == 1 ? "" : "s")}");
+    }
+
+    private sealed class StepClipboardData
+    {
+        public string Format { get; set; } = "doink-steps";
+        public List<MacroAction> Steps { get; set; } = new();
+    }
+
+    /// <summary>Inserts steps after the selection (or at the end) and selects the first.</summary>
+    public void InsertSteps(List<MacroAction> actions)
+    {
+        if (actions.Count == 0) return;
+        var index = Targets() is { Count: > 0 } t ? Steps.IndexOf(t[^1]) + 1 : Steps.Count;
+        PushUndo();
+        ActionViewModel? first = null;
+        foreach (var a in actions)
+        {
+            var vm = CreateStep(a, index);
+            Steps.Insert(index++, vm);
+            first ??= vm;
+        }
+        SyncModelFromSteps(pushUndo: false);
+        SelectedStep = first;
+    }
+
+    // ------------------------------------------------------------------ adding steps
+
+    /// <summary>
+    /// Adds a new step after the selection (or at the end). Parameter = <see cref="MacroActionType"/> name.
+    /// If / Loop automatically get their End If / End Loop, wrapping the selected steps when several are selected.
+    /// </summary>
     [RelayCommand]
     private void AddStep(string? typeName)
     {
         if (!Enum.TryParse<MacroActionType>(typeName, out var type)) type = MacroActionType.Wait;
-
-        var action = new MacroAction { Type = type, DelayMs = type == MacroActionType.Wait ? 500 : 100 };
-        if (action.IsMouseAction)
+        var action = StepFactory.Create(type);
+        if (action.IsMouseAction && action.Position is not null)
         {
             var cursor = _ctx.Positions.GetCursorPosition();
-            action.Position = _ctx.Positions.FromAbsolute(cursor, _ctx.Settings.Settings.DefaultMouseMode == MousePositionMode.Relative
+            action.Position = _ctx.Positions.FromAbsolute(cursor, _ctx.Settings.Settings.DefaultMouseMode is MousePositionMode.Relative
+                or MousePositionMode.Window or MousePositionMode.Found
                 ? MousePositionMode.Absolute : _ctx.Settings.Settings.DefaultMouseMode, cursor);
         }
-        if (type == MacroActionType.MouseWheel) action.WheelDelta = 120;
-        if (action.IsKeyAction) action.KeyCode = KeyCodes.Space;
 
-        var index = SelectedStep is { } sel ? Steps.IndexOf(sel) + 1 : Steps.Count;
-        var vm = CreateStep(action, index);
-        Steps.Insert(index, vm);
-        SyncModelFromSteps();
-        SelectedStep = vm;
+        var closer = type switch
+        {
+            MacroActionType.If => MacroActionType.EndIf,
+            MacroActionType.Loop => MacroActionType.EndLoop,
+            _ => (MacroActionType?)null
+        };
+
+        var targets = Targets();
+        if (closer is { } end && targets.Count > 1)
+        {
+            // Wrap the selection: If … [selected steps] … End If
+            PushUndo();
+            var start = Steps.IndexOf(targets[0]);
+            var stop = Steps.IndexOf(targets[^1]);
+            var open = CreateStep(action, start);
+            Steps.Insert(start, open);
+            Steps.Insert(stop + 2, CreateStep(StepFactory.Create(end), stop + 2));
+            SyncModelFromSteps(pushUndo: false);
+            SelectedStep = open;
+            return;
+        }
+
+        var list = new List<MacroAction> { action };
+        if (closer is { } c) list.Add(StepFactory.Create(c));
+        InsertSteps(list);
     }
+
+    [RelayCommand]
+    private void AddTemplate(string? name)
+    {
+        var t = StepFactory.Templates.FirstOrDefault(x => x.Name == name);
+        if (t is null) return;
+        InsertSteps(t.Build());
+        _ctx.Library.Toast($"Added template \"{t.Name}\" — check each step's settings on the right");
+    }
+
+    public IReadOnlyList<StepFactory.Template> Templates => StepFactory.Templates;
 
     [RelayCommand]
     private async Task ClearStepsAsync()
     {
         if (Steps.Count == 0) return;
-        if (!await _ctx.Dialogs.ConfirmAsync("Clear all steps", $"Remove all {Steps.Count} steps from \"{Name}\"?", "Clear", danger: true))
+        if (!await _ctx.Dialogs.ConfirmAsync("Clear all steps", $"Remove all {Steps.Count} steps from \"{Name}\"? (You can undo this.)", "Clear", danger: true))
             return;
+        PushUndo();
         Steps.Clear();
         SelectedStep = null;
-        SyncModelFromSteps();
+        SyncModelFromSteps(pushUndo: false);
     }
 
     /// <summary>Removes all MouseMove steps (keeps clicks/keys) and folds their delays into the next step.</summary>
@@ -227,7 +553,7 @@ public sealed partial class MacroViewModel : ViewModelBase
             _ctx.Library.Toast("Please enter a number greater than 0", ToastKind.Error);
             return;
         }
-        foreach (var s in Steps) s.DelayMs = (decimal)Math.Round(s.Model.DelayMs * f);
+        Batch(() => { foreach (var s in Steps) s.DelayMs = (decimal)Math.Round(s.Model.DelayMs * f); });
     }
 
     /// <summary>Converts all mouse steps to one positioning mode.</summary>
@@ -236,14 +562,17 @@ public sealed partial class MacroViewModel : ViewModelBase
     {
         if (!Enum.TryParse<MousePositionMode>(modeName, out var mode)) return;
         var previous = _ctx.Positions.GetCursorPosition();
-        foreach (var s in Steps)
+        Batch(() =>
         {
-            if (s.Model.Position is not { } pos) continue;
-            var absolute = _ctx.Positions.Resolve(pos, previous);
-            s.Model.Position = _ctx.Positions.FromAbsolute(absolute, mode, previous);
-            previous = absolute;
-            s.RaiseAll();
-        }
+            foreach (var s in Steps)
+            {
+                if (s.Model.Position is not { } pos) continue;
+                var absolute = _ctx.Positions.Resolve(pos, previous);
+                s.Model.Position = _ctx.Positions.FromAbsolute(absolute, mode, previous);
+                previous = absolute;
+                s.RaiseAll();
+            }
+        });
         _ctx.Library.Toast($"Converted mouse steps to {mode} positioning");
     }
 
@@ -333,6 +662,12 @@ public sealed partial class MacroViewModel : ViewModelBase
         set { if (value) SetMode(PlaybackMode.LoopInfinite); }
     }
 
+    public bool IsModeDuration
+    {
+        get => Model.Playback.Mode == PlaybackMode.LoopDuration;
+        set { if (value) SetMode(PlaybackMode.LoopDuration); }
+    }
+
     private void SetMode(PlaybackMode mode)
     {
         if (Model.Playback.Mode == mode) return;
@@ -340,7 +675,39 @@ public sealed partial class MacroViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsModeOnce));
         OnPropertyChanged(nameof(IsModeLoopCount));
         OnPropertyChanged(nameof(IsModeInfinite));
+        OnPropertyChanged(nameof(IsModeDuration));
         Changed();
+    }
+
+    public decimal DurationMinutes
+    {
+        get => (decimal)Model.Playback.DurationMinutes;
+        set
+        {
+            var v = (double)Math.Clamp(value, 0.1m, 100_000m);
+            if (Math.Abs(v - Model.Playback.DurationMinutes) < 0.0001) return;
+            Model.Playback.DurationMinutes = v;
+            OnPropertyChanged();
+            Changed();
+        }
+    }
+
+    public decimal TimingJitterPercent
+    {
+        get => Model.Playback.TimingJitterPercent;
+        set { var v = (int)Math.Clamp(value, 0, 90); if (v != Model.Playback.TimingJitterPercent) { Model.Playback.TimingJitterPercent = v; OnPropertyChanged(); Changed(); } }
+    }
+
+    public decimal MouseJitterPx
+    {
+        get => Model.Playback.MouseJitterPx;
+        set { var v = (int)Math.Clamp(value, 0, 100); if (v != Model.Playback.MouseJitterPx) { Model.Playback.MouseJitterPx = v; OnPropertyChanged(); Changed(); } }
+    }
+
+    public bool SaveReport
+    {
+        get => Model.Playback.SaveReport;
+        set { if (value != Model.Playback.SaveReport) { Model.Playback.SaveReport = value; OnPropertyChanged(); Changed(); } }
     }
 
     public decimal LoopCount

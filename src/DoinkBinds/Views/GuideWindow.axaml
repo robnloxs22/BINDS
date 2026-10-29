@@ -1,0 +1,170 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:DoinkBinds.ViewModels"
+        x:Class="DoinkBinds.Views.GuideWindow"
+        x:DataType="vm:GuideViewModel"
+        Title="Doink Binds — Guided recording"
+        Icon="/Assets/doink.ico"
+        Width="380" SizeToContent="Height" MaxHeight="760"
+        CanResize="False"
+        Topmost="True"
+        WindowStartupLocation="Manual">
+    <Window.Styles>
+        <Style Selector="Button.tile">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="Margin" Value="0,0,0,4" />
+        </Style>
+        <Style Selector="Button.tile PathIcon">
+            <Setter Property="Width" Value="14" />
+            <Setter Property="Height" Value="14" />
+            <Setter Property="Margin" Value="0,0,8,0" />
+        </Style>
+    </Window.Styles>
+
+    <StackPanel Margin="16" Spacing="10">
+        <StackPanel Orientation="Horizontal" Spacing="10">
+            <Image Source="/Assets/doink-256.png" Width="26" Height="26" />
+            <StackPanel>
+                <TextBlock Classes="h2" Text="{Binding HeaderText}" />
+                <TextBlock Classes="caption" Text="{Binding TargetName}" />
+            </StackPanel>
+        </StackPanel>
+
+        <!-- ================= choose mode ================= -->
+        <StackPanel Spacing="8" IsVisible="{Binding IsChoose}">
+            <TextBlock Classes="secondary" TextWrapping="Wrap"
+                       Text="Build a macro with help. Pick how you want to work:" />
+            <Button Classes="tile primary" Command="{Binding StartWizardCommand}">
+                <StackPanel>
+                    <TextBlock Text="Step by step" FontWeight="Bold" Foreground="White" />
+                    <TextBlock Text="Choose each action from a list and point at the screen — nothing is recorded by accident."
+                               TextWrapping="Wrap" FontSize="12" Foreground="#E0E3FF" />
+                </StackPanel>
+            </Button>
+            <Button Classes="tile danger" Command="{Binding StartRecordingCommand}">
+                <StackPanel>
+                    <TextBlock Text="Record, pausing after each click" FontWeight="Bold" Foreground="White" />
+                    <TextBlock Text="Use your computer normally; after every click you can name it, make it find an image, or add a wait."
+                               TextWrapping="Wrap" FontSize="12" Foreground="#FFE3E3" />
+                </StackPanel>
+            </Button>
+        </StackPanel>
+
+        <!-- ================= wizard ================= -->
+        <StackPanel IsVisible="{Binding IsWizard}" Spacing="2">
+            <TextBlock Classes="section" Text="MOUSE" />
+            <Grid ColumnDefinitions="*,4,*,4,*">
+                <Button Classes="tile" Command="{Binding AddClickCommand}" CommandParameter="left">
+                    <StackPanel Orientation="Horizontal"><PathIcon Data="{StaticResource Icon.Mouse}" /><TextBlock Text="Click" /></StackPanel>
+                </Button>
+                <Button Grid.Column="2" Classes="tile" Command="{Binding AddClickCommand}" CommandParameter="double">
+                    <TextBlock Text="Double" />
+                </Button>
+                <Button Grid.Column="4" Classes="tile" Command="{Binding AddClickCommand}" CommandParameter="right">
+                    <TextBlock Text="Right" />
+                </Button>
+            </Grid>
+            <CheckBox Content="Click by image (finds it even if it moves)" IsChecked="{Binding WizardClickByImage}" FontSize="12" Margin="0,0,0,4" />
+            <Button Classes="tile" Command="{Binding AddClickTextCommand}">
+                <StackPanel Orientation="Horizontal"><PathIcon Data="{StaticResource Icon.Search}" /><TextBlock Text="Click on some text…" /></StackPanel>
+            </Button>
+
+            <TextBlock Classes="section" Text="KEYBOARD" Margin="0,6,0,0" />
+            <Grid ColumnDefinitions="*,4,*">
+                <Button Classes="tile" Command="{Binding AddTypeTextCommand}">
+                    <StackPanel Orientation="Horizontal"><PathIcon Data="{StaticResource Icon.Keyboard}" /><TextBlock Text="Type text" /></StackPanel>
+                </Button>
+                <Button Grid.Column="2" Classes="tile" Command="{Binding AddKeyCommand}">
+                    <TextBlock Text="Press key / combo" />
+                </Button>
+            </Grid>
+
+            <TextBlock Classes="section" Text="WAIT / CHECK" Margin="0,6,0,0" />
+            <Grid ColumnDefinitions="*,4,*">
+                <Button Classes="tile" Command="{Binding AddWaitCommand}">
+                    <StackPanel Orientation="Horizontal"><PathIcon Data="{StaticResource Icon.Timer}" /><TextBlock Text="Wait seconds" /></StackPanel>
+                </Button>
+                <Button Grid.Column="2" Classes="tile" Command="{Binding AddWaitImageCommand}">
+                    <TextBlock Text="Until image appears" />
+                </Button>
+            </Grid>
+            <Grid ColumnDefinitions="*,4,*">
+                <Button Classes="tile" Command="{Binding AddWaitTextCommand}">
+                    <TextBlock Text="Until text appears" />
+                </Button>
+                <Button Grid.Column="2" Classes="tile" Command="{Binding AddCheckCommand}">
+                    <StackPanel Orientation="Horizontal"><PathIcon Data="{StaticResource Icon.Check}" /><TextBlock Text="Check (test)" /></StackPanel>
+                </Button>
+            </Grid>
+
+            <TextBlock Classes="section" Text="OTHER" Margin="0,6,0,0" />
+            <Grid ColumnDefinitions="*,4,*">
+                <Button Classes="tile" Command="{Binding AddOpenAppCommand}">
+                    <StackPanel Orientation="Horizontal"><PathIcon Data="{StaticResource Icon.Window}" /><TextBlock Text="Open app / site" /></StackPanel>
+                </Button>
+                <Button Grid.Column="2" Classes="tile" Command="{Binding AddScreenshotCommand}">
+                    <TextBlock Text="Screenshot" />
+                </Button>
+            </Grid>
+            <Grid ColumnDefinitions="*,4,*" Margin="0,6,0,0">
+                <Button Classes="tile ghost" Command="{Binding LabelLastCommand}">
+                    <StackPanel Orientation="Horizontal"><PathIcon Data="{StaticResource Icon.Pencil}" /><TextBlock Text="Name last step" /></StackPanel>
+                </Button>
+                <Button Grid.Column="2" Classes="tile ghost" Command="{Binding UndoLastCommand}">
+                    <TextBlock Text="↶ Undo last" />
+                </Button>
+            </Grid>
+        </StackPanel>
+
+        <!-- ================= recording ================= -->
+        <StackPanel IsVisible="{Binding IsRecording}" Spacing="8">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Ellipse Classes="dot recording" Width="12" Height="12" VerticalAlignment="Center" />
+                <TextBlock Text="Recording — clicks inside this window are ignored." TextWrapping="Wrap" />
+            </StackPanel>
+            <Button Classes="tile ghost" Command="{Binding UndoLastCommand}">
+                <TextBlock Text="↶ Undo the last recorded step" />
+            </Button>
+        </StackPanel>
+
+        <!-- ================= paused after a click ================= -->
+        <StackPanel IsVisible="{Binding IsPaused}" Spacing="8">
+            <Border Classes="card" Padding="10">
+                <Grid ColumnDefinitions="Auto,*">
+                    <Border Width="110" Height="66" CornerRadius="6" ClipToBounds="True" Background="{DynamicResource Doink.Bg.Input}">
+                        <Image Source="{Binding PausedImage}" Stretch="Uniform" />
+                    </Border>
+                    <TextBlock Grid.Column="1" Margin="10,0,0,0" Text="{Binding PausedTitle}" TextWrapping="Wrap" VerticalAlignment="Center" FontWeight="SemiBold" />
+                </Grid>
+            </Border>
+            <TextBox Text="{Binding StepLabel}" Watermark="Name this step (optional), e.g. Click Login" />
+            <CheckBox Content="Click by image (finds it even if it moves)" IsChecked="{Binding ClickByImage}" />
+            <CheckBox Content="Wait until this appears before clicking" IsChecked="{Binding WaitForItFirst}" />
+            <Grid ColumnDefinitions="*,6,Auto">
+                <Button Classes="primary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Command="{Binding ContinueCommand}">
+                    <TextBlock Text="Keep it &amp; continue" Foreground="White" />
+                </Button>
+                <Button Grid.Column="2" Classes="ghost" Content="Discard click" Command="{Binding DiscardClickCommand}" />
+            </Grid>
+        </StackPanel>
+
+        <!-- ================= recent + finish ================= -->
+        <StackPanel Spacing="4" IsVisible="{Binding !IsChoose}">
+            <TextBlock Classes="section" Text="LATEST STEPS" />
+            <ItemsControl ItemsSource="{Binding Recent}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="x:String">
+                        <TextBlock Text="{Binding}" Classes="secondary" FontSize="12" TextTrimming="CharacterEllipsis" Margin="0,1" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Classes="caption" Text="{Binding Status}" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <Button Classes="success" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Command="{Binding FinishCommand}">
+            <TextBlock Text="Finish" Foreground="White" />
+        </Button>
+    </StackPanel>
+</Window>
