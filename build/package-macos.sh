@@ -37,7 +37,10 @@ if [[ "$(uname)" == "Darwin" ]]; then
     echo "> Building DMG..."
     DMG="$ROOT/publish/DoinkBinds-$RID.dmg"
     rm -f "$DMG"
-    hdiutil create -volname "Doink Binds" -srcfolder "$APP" -ov -format UDZO "$DMG" >/dev/null
+    # hdiutil's automatic size estimate is too small for large bundles ("No space left on device"),
+    # so give it an explicit size with headroom.
+    SIZE_MB=$(( $(du -sm "$APP" | cut -f1) * 13 / 10 + 50 ))
+    hdiutil create -volname "Doink Binds" -srcfolder "$APP" -fs HFS+ -size "${SIZE_MB}m" -ov -format UDZO "$DMG" >/dev/null
     echo "OK: $DMG"
 else
     echo "Note: Not on macOS: skipping codesign + DMG (copy the .app to a Mac and run 'codesign --force --deep --sign - \"Doink Binds.app\"')."
